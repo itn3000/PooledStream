@@ -47,7 +47,7 @@ namespace PooledStream.Test
         public void TestReadOnly()
         {
             var data = new byte[] { 1, 2, 3, 4 };
-            using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared, data, 0, data.Length))
+            using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared, data))
             {
                 Assert.True(stm.CanRead);
                 Assert.False(stm.CanWrite);

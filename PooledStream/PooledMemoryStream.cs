@@ -5,21 +5,20 @@ namespace PooledStream
     using System.Buffers;
     public class PooledMemoryStream : Stream
     {
-        ArrayPool<byte> m_Pool;
-        byte[] _currentbuffer = null;
-        bool _CanWrite = false;
-        long _Length = 0;
-        long _Position = 0;
-        bool _FromPool = false;
+        /// <summary>create writable memory stream with default parameters</summary>
+        /// <remarks>buffer is allocated from ArrayPool<byte>.Shared</remarks>
         public PooledMemoryStream()
             : this(ArrayPool<byte>.Shared)
         {
         }
+        /// <summary>create writable memory stream with specified ArrayPool</summary>
+        /// <remarks>buffer is allocated from ArrayPool</remarks>
         public PooledMemoryStream(ArrayPool<byte> pool)
             : this(pool, 4096)
         {
-            m_Pool = pool;
         }
+        /// <summary>create writable memory stream with ensuring buffer length</summary>
+        /// <remarks>buffer is allocated from ArrayPool</remarks>
         public PooledMemoryStream(ArrayPool<byte> pool, int capacity)
         {
             m_Pool = pool;
@@ -28,12 +27,15 @@ namespace PooledStream
             _Length = 0;
             _CanWrite = true;
         }
-        public PooledMemoryStream(ArrayPool<byte> pool, byte[] data, int offset, int length)
+        /// <summary>create readonly MemoryStream without buffer copy</summary>
+        /// <remarks>data will be read from 'data' parameter</summary>
+        public PooledMemoryStream(ArrayPool<byte> pool, byte[] data)
         {
             m_Pool = pool;
             _currentbuffer = data;
-            _Length = length;
+            _Length = data.Length;
             _CanWrite = false;
+            _FromPool = false;
         }
         public override bool CanRead
         {
@@ -65,13 +67,20 @@ namespace PooledStream
         public override int Read(byte[] buffer, int offset, int count)
         {
             int readlen = count > (int)(_Length - _Position) ? (int)(_Length - _Position) : count;
-            Buffer.BlockCopy(_currentbuffer
-                , (int)_Position
-                , buffer, offset
-                , readlen)
-                ;
-            _Position += readlen;
-            return readlen;
+            if (readlen > 0)
+            {
+                Buffer.BlockCopy(_currentbuffer
+                    , (int)_Position
+                    , buffer, offset
+                    , readlen)
+                    ;
+                _Position += readlen;
+                return readlen;
+            }
+            else
+            {
+                return 0;
+            }
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -91,7 +100,7 @@ namespace PooledStream
                 default:
                     throw new InvalidOperationException("unknown SeekOrigin");
             }
-            if(_Position < 0 || _Position > _Length)
+            if (_Position < 0 || _Position > _Length)
             {
                 _Position = oldValue;
                 throw new IndexOutOfRangeException();
@@ -178,10 +187,16 @@ namespace PooledStream
             return ret;
         }
         /// <summary>Create ArraySegment for current stream data without allocation buffer</summary>
-        /// <remarks>after disposing stream, manupilating buffer(read or write) may cause undefined behavior</remarks>
+        /// <remarks>After disposing stream, manupilating returned value(read or write) may cause undefined behavior</remarks>
         public ArraySegment<byte> ToUnsafeArraySegment()
         {
             return new ArraySegment<byte>(_currentbuffer, 0, (int)_Length);
         }
+        ArrayPool<byte> m_Pool;
+        byte[] _currentbuffer = null;
+        bool _CanWrite = false;
+        long _Length = 0;
+        long _Position = 0;
+        bool _FromPool = false;
     }
 }
