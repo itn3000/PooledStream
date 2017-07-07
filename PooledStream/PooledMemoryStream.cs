@@ -6,7 +6,7 @@ namespace PooledStream
     public class PooledMemoryStream : Stream
     {
         /// <summary>create writable memory stream with default parameters</summary>
-        /// <remarks>buffer is allocated from ArrayPool<byte>.Shared</remarks>
+        /// <remarks>buffer is allocated from ArrayPool.Shared</remarks>
         public PooledMemoryStream()
             : this(ArrayPool<byte>.Shared)
         {

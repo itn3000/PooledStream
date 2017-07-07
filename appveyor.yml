@@ -1,0 +1,14 @@
+version: 1.0.{build}
+image: Visual Studio 2017 Preview
+configuration: Release
+before_build:
+- cmd: dotnet restore
+build:
+  verbosity: minimal
+after_build:
+- cmd: dotnet pack PooledStream -c Release --include-symbols
+test_script:
+- cmd: dotnet test PooledStream.Test\PooledStream.Test.csproj -c Release
+artifacts:
+- path: PooledStream\bin\Release\*.nupkg
+  name: NugetPackages
