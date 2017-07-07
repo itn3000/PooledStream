@@ -4,14 +4,29 @@ namespace PooledStream.Benchmark
 {
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
+    using BenchmarkDotNet.Diagnosers;
     using System.Buffers;
     using Microsoft.IO;
+    using System.IO;
+    [MemoryDiagnoser]
     public class StreamBenchmark
     {
-        [Params(1_000, 100_000)]
+        [Params(100, 1_000, 100_000)]
         public int DataSize { get; set; }
         [Params(10000)]
         public int MaxLoop { get; set; }
+        [Benchmark(Baseline = true)]
+        public void NormalStreamTest()
+        {
+            var data = new byte[DataSize];
+            for(int i = 0;i<MaxLoop;i++)
+            {
+                using(var stm = new MemoryStream())
+                {
+                    stm.Write(data, 0, data.Length);
+                }
+            }
+        }
         [Benchmark]
         public void PooledStreamBench()
         {

@@ -55,6 +55,8 @@ namespace PooledStream.Test
                 var bytesread = stm.Read(buf, 4, buf.Length - 4);
                 Assert.Equal(4, bytesread);
                 Assert.Equal(4, stm.Position);
+                bytesread = stm.Read(buf, 0, buf.Length);
+                Assert.Equal(0, bytesread);
             }
         }
         [Fact]
