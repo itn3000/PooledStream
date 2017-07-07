@@ -10,8 +10,8 @@
     <PackageReleaseNotes>add breaking change to readonly stream constructor</PackageReleaseNotes>
     <Copyright>Copyright(c) 2017 itn3000. All rights reserved</Copyright>
     <PackageTags>MemoryStream</PackageTags>
-    <ProjectUrl>https://github.com/itn3000/PooledStream/</ProjectUrl>
-    <LicenseUrl>https://opensource.org/licenses/MIT</LicenseUrl>
+    <PackageProjectUrl>https://github.com/itn3000/PooledStream/</PackageProjectUrl>
+    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/itn3000/PooledStream/</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
