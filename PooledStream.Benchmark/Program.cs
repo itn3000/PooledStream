@@ -8,10 +8,11 @@ namespace PooledStream.Benchmark
     using System.Buffers;
     using Microsoft.IO;
     using System.IO;
+    using ObjectMemoryStream = CodeProject.ObjectPool.Specialized.MemoryStreamPool;
     [MemoryDiagnoser]
     public class StreamBenchmark
     {
-        [Params(100, 1_000, 100_000)]
+        [Params(100, 1_000, 50_000)]
         public int DataSize { get; set; }
         [Params(10000)]
         public int MaxLoop { get; set; }
@@ -52,12 +53,26 @@ namespace PooledStream.Benchmark
                 }
             }
         }
+        [Benchmark]
+        public void ObjectPoolTest()
+        {
+            var pool = ObjectMemoryStream.Instance;
+            var data = new byte[DataSize];
+            for(int i = 0;i<MaxLoop;i++)
+            {
+                using(var stm = pool.GetObject())
+                {
+                    stm.MemoryStream.Write(data, 0, data.Length);
+                }
+            }
+        }
     }
     class Program
     {
         static void Main(string[] args)
         {
             var reporter = BenchmarkRunner.Run<StreamBenchmark>();
+            reporter = BenchmarkRunner.Run<StreamPrallelBenchmark>();
         }
     }
 }

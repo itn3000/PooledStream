@@ -23,19 +23,18 @@ namespace PooledStream
         {
             m_Pool = pool;
             _currentbuffer = m_Pool.Rent(capacity);
-            _FromPool = true;
             _Length = 0;
             _CanWrite = true;
+            _Position = 0;
         }
         /// <summary>create readonly MemoryStream without buffer copy</summary>
         /// <remarks>data will be read from 'data' parameter</summary>
-        public PooledMemoryStream(ArrayPool<byte> pool, byte[] data)
+        public PooledMemoryStream(byte[] data)
         {
-            m_Pool = pool;
+            m_Pool = null;
             _currentbuffer = data;
             _Length = data.Length;
             _CanWrite = false;
-            _FromPool = false;
         }
         public override bool CanRead
         {
@@ -143,10 +142,6 @@ namespace PooledStream
                 throw new InvalidOperationException("stream is readonly");
             }
             long endOffset = _Position + count;
-            if (endOffset > int.MaxValue)
-            {
-                throw new IndexOutOfRangeException("overflow");
-            }
             if (endOffset > _currentbuffer.Length)
             {
                 ReallocateBuffer((int)(endOffset) * 2);
@@ -163,7 +158,7 @@ namespace PooledStream
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            if (_currentbuffer != null && _FromPool)
+            if (m_Pool != null && _currentbuffer != null)
             {
                 m_Pool.Return(_currentbuffer);
                 _currentbuffer = null;
@@ -193,10 +188,9 @@ namespace PooledStream
             return new ArraySegment<byte>(_currentbuffer, 0, (int)_Length);
         }
         ArrayPool<byte> m_Pool;
-        byte[] _currentbuffer = null;
-        bool _CanWrite = false;
-        long _Length = 0;
-        long _Position = 0;
-        bool _FromPool = false;
+        byte[] _currentbuffer;
+        bool _CanWrite;
+        long _Length;
+        long _Position;
     }
 }
