@@ -2,6 +2,9 @@
 
 namespace PooledStream.Benchmark
 {
+    using BenchmarkDotNet.Jobs;
+    using BenchmarkDotNet.Configs;
+    using BenchmarkDotNet.Toolchains.CsProj;
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Running;
     using BenchmarkDotNet.Diagnosers;
@@ -10,6 +13,7 @@ namespace PooledStream.Benchmark
     using System.IO;
     using ObjectMemoryStream = CodeProject.ObjectPool.Specialized.MemoryStreamPool;
     [MemoryDiagnoser]
+    [Config(typeof(MultiPlatformConfig))]
     public class StreamBenchmark
     {
         [Params(100, 1_000, 50_000)]
@@ -67,12 +71,27 @@ namespace PooledStream.Benchmark
             }
         }
     }
+    class MultiPlatformConfig : ManualConfig
+    {
+        public MultiPlatformConfig()
+        {
+            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
+                .With(CsProjCoreToolchain.NetCoreApp20));
+            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
+                .With(CsProjCoreToolchain.NetCoreApp21));
+        }
+    }
     class Program
     {
         static void Main(string[] args)
         {
-            var reporter = BenchmarkRunner.Run<StreamBenchmark>();
-            reporter = BenchmarkRunner.Run<StreamPrallelBenchmark>();
+            var switcher = new BenchmarkSwitcher(new Type[]
+            {
+                typeof(StreamBenchmark),
+                typeof(StreamPrallelBenchmark)
+            }
+            );
+            switcher.Run();
         }
     }
 }

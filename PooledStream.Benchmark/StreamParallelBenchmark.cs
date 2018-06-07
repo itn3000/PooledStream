@@ -11,6 +11,7 @@ namespace PooledStream.Benchmark
     using System.Linq;
     using ObjectMemoryStream = CodeProject.ObjectPool.Specialized.MemoryStreamPool;
     [MemoryDiagnoser]
+    [Config(typeof(MultiPlatformConfig))]
     public class StreamPrallelBenchmark
     {
         [Params(5, 10)]
