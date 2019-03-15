@@ -55,7 +55,7 @@ namespace PooledStream
             get => _Position;
             set
             {
-                _Position = value;
+                _Position = (int)value;
             }
         }
 
@@ -66,7 +66,11 @@ namespace PooledStream
         void ReallocateBuffer(int minimumRequired)
         {
             var tmp = m_Pool.Rent(minimumRequired);
+            #if NETSTANDARD2_1
+            _currentbuffer.AsSpan().CopyTo(tmp);
+            #else
             Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length);
+            #endif
             m_Pool.Return(_currentbuffer);
             _currentbuffer = tmp;
         }
@@ -84,7 +88,7 @@ namespace PooledStream
             {
                 throw new IndexOutOfRangeException("underflow");
             }
-            _Length = value;
+            _Length = (int)value;
             if (_currentbuffer.Length < _Length)
             {
                 ReallocateBuffer((int)_Length);
@@ -122,10 +126,34 @@ namespace PooledStream
         {
             return new ArraySegment<byte>(_currentbuffer, 0, (int)_Length);
         }
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            int oldValue = _Position;
+            switch ((int)origin)
+            {
+                case (int)SeekOrigin.Begin:
+                    _Position = (int)offset;
+                    break;
+                case (int)SeekOrigin.End:
+                    _Position = _Length - (int)offset;
+                    break;
+                case (int)SeekOrigin.Current:
+                    _Position += (int)offset;
+                    break;
+                default:
+                    throw new InvalidOperationException("unknown SeekOrigin");
+            }
+            if (_Position < 0 || _Position > _Length)
+            {
+                _Position = oldValue;
+                throw new IndexOutOfRangeException();
+            }
+            return _Position;
+        }
         ArrayPool<byte> m_Pool;
         byte[] _currentbuffer;
         bool _CanWrite;
-        long _Length;
-        long _Position;
+        int _Length;
+        int _Position;
     }
 }
