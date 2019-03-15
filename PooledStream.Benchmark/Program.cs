@@ -75,10 +75,10 @@ namespace PooledStream.Benchmark
     {
         public MultiPlatformConfig()
         {
-            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
+            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
                 .With(CsProjCoreToolchain.NetCoreApp20));
-            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
-                .With(CsProjCoreToolchain.NetCoreApp21));
+            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
+                .With(CsProjCoreToolchain.NetCoreApp30));
         }
     }
     class Program
