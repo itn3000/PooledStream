@@ -14,6 +14,7 @@ namespace PooledStream.Benchmark
     using ObjectMemoryStream = CodeProject.ObjectPool.Specialized.MemoryStreamPool;
     [MemoryDiagnoser]
     [Config(typeof(MultiPlatformConfig))]
+    // [DisassemblyDiagnoser(printIL: true, printSource: true, printAsm: true)]
     public class StreamBenchmark
     {
         [Params(100, 1_000, 50_000)]
@@ -40,9 +41,10 @@ namespace PooledStream.Benchmark
             {
                 using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared, DataSize))
                 {
-                    stm.Write(data, 0, data.Length);
+                    stm.Write(data, 0, DataSize);
                 }
             }
+            // ArrayPool<byte>.Shared.Return(data);
         }
         [Benchmark]
         public void RecyclableStreamTest()
