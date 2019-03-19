@@ -1,6 +1,6 @@
 jobs:
   - job: WindowsBuild
-    pool: windows-2019
+    pool: Hosted Windows 2019 with VS 2019
     displayName: Windows Build
     steps:
       - script: dotnet tool restore
