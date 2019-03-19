@@ -8,4 +8,4 @@ jobs:
       - script: dotnet tool run dotnet-cake build.cake
         displayName: build project
       - task: PublishBuildArtifacts@1
-        pathToPublish: PooledStream/bin/Release
+        pathtoPublish: PooledStream/bin/Release
