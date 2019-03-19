@@ -4,7 +4,7 @@ configuration: Release
 before_build:
 - cmd: dotnet tool restore
 - cmd: dotnet restore PooledStream.slnproj
-build:
+build_script:
   cmd: dotnet tool run dotnet-cake build.cake -Configuration=Release
 test: off
 artifacts:
