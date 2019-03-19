@@ -2,13 +2,11 @@ version: 1.0.{build}
 image: Visual Studio 2019 Preview
 configuration: Release
 before_build:
-- cmd: dotnet restore
+- cmd: dotnet tool restore
+- cmd: dotnet restore PooledStream.slnproj
 build:
-  verbosity: minimal
-after_build:
-- cmd: dotnet pack PooledStream -c Release --include-symbols
-test_script:
-- cmd: dotnet test PooledStream.Test\PooledStream.Test.csproj -c Release
+  cmd: dotnet tool run dotnet-cake build.cake -Configuration=Release
+test: off
 artifacts:
 - path: PooledStream\bin\Release\*.nupkg
   name: NugetPackages
