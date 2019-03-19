@@ -7,7 +7,7 @@ namespace PooledStream
     public partial class PooledMemoryStream : Stream
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        int ReadInternal(Span<byte> buffer)
+        int ReadInternal(in Span<byte> buffer)
         {
             int readlen = buffer.Length > (int)(_Length - _Position) ? (int)(_Length - _Position) : buffer.Length;
             if (readlen > 0)
