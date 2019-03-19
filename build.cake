@@ -5,6 +5,7 @@ var target = Argument("Target", "Default");
 
 Task("Default")
     .IsDependentOn("Test")
+    .IsDependentOn("Pack")
     ;
 Task("Build")
     .Does(() =>
@@ -29,4 +30,14 @@ Task("Test")
         DotNetCoreTest(IO.Path.Combine("PooledStream.Test", "PooledStream.Test.csproj"), setting);
     })
     ;
+Task("Pack")
+    .IsDependentOn("Build")
+    .Does(() =>
+    {
+        var settings = new DotNetCorePackSettings()
+        {
+            Configuration = configuration
+        };
+        DotNetCorePack("PooledStream.sln", settings);
+    });
 RunTarget(target);
