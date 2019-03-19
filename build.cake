@@ -14,7 +14,7 @@ Task("Build")
         {
             Configuration = configuration,
         };
-        DotNetCoreBuild("PooledStream.sln", setting);
+        DotNetCoreBuild("PooledStream.slnproj", setting);
     });
 Task("Test")
     .IsDependentOn("Build")
@@ -38,6 +38,16 @@ Task("Pack")
         {
             Configuration = configuration
         };
-        DotNetCorePack("PooledStream.sln", settings);
+        DotNetCorePack("PooledStream.slnproj", settings);
+    });
+Task("Clean")
+    .Does(() =>
+    {
+        DotNetCoreClean("PooledStream.slnproj");
+    });
+Task("SlnGen")
+    .Does(() =>
+    {
+        DotNetCoreMSBuild("PooledStream.slngen");
     });
 RunTarget(target);
