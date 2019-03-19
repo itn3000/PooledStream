@@ -1,6 +1,6 @@
 using IO = System.IO;
 
-var configuration = Argument("-c", "Debug");
+var configuration = Argument("Configuration", "Debug");
 var target = Argument("Target", "Default");
 
 Task("Default")
