@@ -48,6 +48,6 @@ Task("Clean")
 Task("SlnGen")
     .Does(() =>
     {
-        DotNetCoreMSBuild("PooledStream.slngen");
+        DotNetCoreMSBuild("PooledStream.slngenproj");
     });
 RunTarget(target);
