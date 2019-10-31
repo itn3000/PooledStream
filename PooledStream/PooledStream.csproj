@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard1.1;netstandard2.1</TargetFrameworks>
     <!-- <TargetFramework>netstandard2.1</TargetFramework> -->
     <PackageId>PooledStream</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>0.2.0</PackageVersion>
     <Authors>itn3000</Authors>
     <Description>Efficient MemoryStream powered by System.Buffers.ArrayPool</Description>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
