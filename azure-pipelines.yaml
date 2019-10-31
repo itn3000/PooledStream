@@ -12,6 +12,11 @@ stages:
               version: "3.0.x"
               packageType: sdk
             displayName: "Enabling dotnet core sdk 3.0"
+          - task: UseDotNet@2
+            inputs:
+              version: "2.1.x"
+              packageType: sdk
+            displayName: "Enabling dotnet core sdk 2.1"
           - script: dotnet tool restore
             displayName: restoring local tool
           - script: dotnet tool run dotnet-cake build.cake -- -Configuration=Release
