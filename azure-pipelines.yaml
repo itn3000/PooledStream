@@ -23,7 +23,7 @@ stages:
             displayName: build project
           - task: CopyFiles@2
             inputs:
-              sourceFolder: PooledMemoryStream/bin/Release
+              sourceFolder: PooledStream/bin/Release
               contents: "**/*.nupkg"
               targetFolder: "$(Build.ArtifactStagingDirectory)"
             displayName: "copying build nupkg to staging directory"
