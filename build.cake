@@ -36,7 +36,8 @@ Task("Pack")
     {
         var settings = new DotNetCorePackSettings()
         {
-            Configuration = configuration
+            Configuration = configuration,
+            IncludeSymbols = true
         };
         DotNetCorePack("PooledStream.slnproj", settings);
     });

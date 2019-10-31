@@ -1,13 +1,60 @@
-jobs:
-  - job: WindowsBuild
-    pool:
-      vmImage: windows-2019
-    displayName: Windows Build
-    steps:
-      - script: dotnet tool restore
-        displayName: restoring local tool
-      - script: dotnet tool run dotnet-cake build.cake
-        displayName: build project
-      - task: PublishBuildArtifacts@1
-        inputs:
-          pathtoPublish: PooledStream/bin/Release
+stages:
+  stage: Build
+    jobs:
+      - job: WindowsBuild
+        pool:
+          vmImage: windows-2019
+        displayName: Windows Build
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              version: "3.0"
+              packageType: sdk
+            displayName: "Enabling dotnet core sdk 3.0"
+          - script: dotnet tool restore
+            displayName: restoring local tool
+          - script: dotnet tool run dotnet-cake build.cake -- -Configuration=Release
+            displayName: build project
+          - task: CopyFiles@2
+            inputs:
+              sourceFolder: PooledMemoryStream/bin/Release
+              contents: "**/*.nupkg"
+              targetFolder: "$(Build.ArtifactStagingDirectory)"
+            displayName: "copying build nupkg to staging directory"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: "release_nupkg"
+              pathToPublish: "$(Build.ArtifactStagingDirectory)"
+            displayName: publishing artifacts
+
+  stage: Publish
+    condition: "startsWith(variables['Build.SourceBranch'], 'refs/tags/')"
+    jobs:
+      - job: PublishToNuGet
+        pool:
+          vmImage: windows-2019
+        displayName: "Publish to nuget.org and github"
+        steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: download nupkg artifacts
+            inputs:
+              artifact: release_nupkg
+              path: "$(Build.ArtifactStagingDirectory)"
+          - task: NuGetCommand@2
+            displayName: "publishing nuget package"
+            inputs:
+              command: push
+              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+              nuGetFeedType: external
+              publishFeedCredentials: 'pooledstream-nuget'
+          - task: GitHubRelease@0
+            displayName: "releasing github"
+            inputs:
+              gitHubConnection: "pooledstream-token"
+              action: create
+              target: "$(Build.SourceVersion)"
+              assets: "$(Build.ArtifactStagingDirectory)/**/*"
+              isDraft: true
+
+
+
