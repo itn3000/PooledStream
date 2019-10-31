@@ -1,5 +1,6 @@
 stages:
-  stage: Build
+  - stage: Build
+    displayName: "build artifacts"
     jobs:
       - job: WindowsBuild
         pool:
@@ -27,7 +28,8 @@ stages:
               pathToPublish: "$(Build.ArtifactStagingDirectory)"
             displayName: publishing artifacts
 
-  stage: Publish
+  - stage: Publish
+    displayName: "release artifacts"
     condition: "startsWith(variables['Build.SourceBranch'], 'refs/tags/')"
     jobs:
       - job: PublishToNuGet
