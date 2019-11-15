@@ -81,18 +81,14 @@ namespace PooledStream.Benchmark
                 .With(CsProjCoreToolchain.NetCoreApp21));
             Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
                 .With(CsProjCoreToolchain.NetCoreApp30));
+            this.Options |= ConfigOptions.DisableOptimizationsValidator;
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
-            var switcher = new BenchmarkSwitcher(new Type[]
-            {
-                typeof(StreamBenchmark),
-                typeof(StreamPrallelBenchmark)
-            }
-            );
+            var switcher = new BenchmarkSwitcher(typeof(Program).Assembly);
             switcher.Run();
         }
     }

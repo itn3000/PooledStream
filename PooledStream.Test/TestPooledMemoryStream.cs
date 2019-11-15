@@ -72,5 +72,37 @@ namespace PooledStream.Test
                 Assert.Equal(data, ar.Take(data.Length));
             }
         }
+        [Fact]
+        public void TestDispose()
+        {
+            var stm = new PooledMemoryStream();
+            stm.Write(new byte[]{ 1, 2, 3, 4 }, 0, 4);
+            stm.Dispose();
+            stm.Write(new byte[]{ 1, 2, 3, 4 }, 0, 4);
+            stm.Dispose();
+        }
+        [Fact]
+        public void TestToMemory()
+        {
+            var data = new byte[] { 1, 2, 3, 4 };
+            using(var stm = new PooledMemoryStream(data))
+            {
+                var mem = stm.ToMemoryUnsafe();
+                Assert.Equal(data, mem);
+                var sp = stm.ToSpanUnsafe();
+                Assert.True(sp.SequenceEqual(data));
+            }
+        }
+        [Fact]
+        public void TestShrink()
+        {
+            var data = new byte[] { 1, 2, 3, 4 };
+            using(var stm = new PooledMemoryStream())
+            {
+                stm.Write(data, 0, data.Length);
+                stm.Shrink(2);
+                Assert.Equal(data.AsSpan(0, 2).ToArray(), stm.ToArray());
+            }
+        }
     }
 }

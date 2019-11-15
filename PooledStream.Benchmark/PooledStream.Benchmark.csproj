@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.0;netcoreapp2.1</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
@@ -11,6 +11,7 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.12.0" />
     <PackageReference Include="CodeProject.ObjectPool" Version="3.2.2" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="1.2.2" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="3.0.0"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PooledStream\PooledStream.csproj" />

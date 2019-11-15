@@ -50,54 +50,82 @@ using(var stm = new PooledStream.PooledMemoryStream(data))
 }
 ```
 
+### Reusing Stream(Advanced Usage)
+
+for avoiding allocation completely, [Microsoft.Extensions.ObjectPool](https://www.nuget.org/packages/Microsoft.Extensions.ObjectPool/) is useful.
+code example:
+
+```csharp
+// using Microsoft.Extensions.ObjectPool;
+// using PooledStream;
+
+// initializing object pool instance.This should be singleton.
+ObjectPool<PooledMemoryStream> pool = ObjectPool.Create<PooledMemoryStream>();
+var stm = pool.Get();
+// initializing stream(buffer initialization included)
+stm.SetLength(0);
+try
+{
+  // using stream...
+  ...
+}
+finally
+{
+  // returning instance
+  pool.Return(stm);
+}
+```
+
+**WARNING: You must call `SetLength(0)` at first, and call `Return(stm)` in the end for preventing memory leak.**
+
 # Micro benchmark result(powered by [BenchmarkDotNet](http://benchmarkdotnet.org/))
 
 ## Comparison of single thread performance
 
 ``` ini
 
-BenchmarkDotNet=v0.11.4, OS=Windows 8.1 (6.3.9600.0)
+BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4770 CPU 3.40GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=3312639 Hz, Resolution=301.8741 ns, Timer=TSC
-.NET Core SDK=3.0.100-preview3-010431
-  [Host]     : .NET Core 3.0.0-preview3-27503-5 (CoreCLR 4.6.27422.72, CoreFX 4.7.19.12807), 64bit RyuJIT
-  Job-UYVIHQ : .NET Core 2.0.9 (CoreCLR 4.6.26614.01, CoreFX 4.6.26614.01), 64bit RyuJIT
-  Job-OKLOIT : .NET Core 3.0.0-preview3-27503-5 (CoreCLR 4.6.27422.72, CoreFX 4.7.19.12807), 64bit RyuJIT
+Frequency=3312643 Hz, Resolution=301.8738 ns, Timer=TSC
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  Job-XHTYBG : .NET Core 2.1.13 (CoreCLR 4.6.28008.01, CoreFX 4.6.28008.01), X64 RyuJIT
+  Job-GARYQQ : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 
 IterationCount=3  WarmupCount=3  
 
 ```
-|               Method |     Toolchain | DataSize | MaxLoop |        Mean |         Error |        StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-|--------------------- |-------------- |--------- |-------- |------------:|--------------:|--------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-|     **NormalStreamTest** | **.NET Core 2.0** |      **100** |   **10000** |    **547.2 us** |    **239.991 us** |    **13.1547 us** |  **1.00** |    **0.00** |    **838.8672** |           **-** |           **-** |          **3437.63 KB** |
-|    PooledStreamBench | .NET Core 2.0 |      100 |   10000 |    717.2 us |     57.219 us |     3.1364 us |  1.31 |    0.03 |    152.3438 |           - |           - |           625.13 KB |
-| RecyclableStreamTest | .NET Core 2.0 |      100 |   10000 | 20,736.4 us |  3,475.612 us |   190.5100 us | 37.91 |    0.65 |   1062.5000 |     31.2500 |     31.2500 |          4510.44 KB |
-|       ObjectPoolTest | .NET Core 2.0 |      100 |   10000 |  1,177.5 us |    467.010 us |    25.5984 us |  2.15 |    0.04 |    152.3438 |           - |           - |           625.13 KB |
-|                      |               |          |         |             |               |               |       |         |             |             |             |                     |
-|     NormalStreamTest | .NET Core 3.0 |      100 |   10000 |    582.2 us |    152.348 us |     8.3507 us |  1.00 |    0.00 |    840.8203 |      0.9766 |           - |          3437.63 KB |
-|    PooledStreamBench | .NET Core 3.0 |      100 |   10000 |    502.8 us |      7.588 us |     0.4159 us |  0.86 |    0.01 |    152.3438 |      0.9766 |           - |           625.13 KB |
-| RecyclableStreamTest | .NET Core 3.0 |      100 |   10000 | 16,097.3 us |  1,734.643 us |    95.0816 us | 27.65 |    0.35 |   1031.2500 |     93.7500 |     31.2500 |           4431.3 KB |
-|       ObjectPoolTest | .NET Core 3.0 |      100 |   10000 |  1,217.7 us |    845.284 us |    46.3329 us |  2.09 |    0.11 |    152.3438 |      1.9531 |           - |           625.13 KB |
-|                      |               |          |         |             |               |               |       |         |             |             |             |                     |
-|     **NormalStreamTest** | **.NET Core 2.0** |     **1000** |   **10000** |  **1,127.8 us** |     **86.465 us** |     **4.7394 us** |  **1.00** |    **0.00** |   **2611.3281** |           **-** |           **-** |         **10704.13 KB** |
-|    PooledStreamBench | .NET Core 2.0 |     1000 |   10000 |  1,072.4 us |    110.832 us |     6.0751 us |  0.95 |    0.00 |    152.3438 |           - |           - |              626 KB |
-| RecyclableStreamTest | .NET Core 2.0 |     1000 |   10000 | 21,393.0 us |  9,297.220 us |   509.6120 us | 18.97 |    0.38 |   1062.5000 |     31.2500 |     31.2500 |          4511.31 KB |
-|       ObjectPoolTest | .NET Core 2.0 |     1000 |   10000 |  1,341.7 us |    116.204 us |     6.3696 us |  1.19 |    0.01 |    152.3438 |           - |           - |              626 KB |
-|                      |               |          |         |             |               |               |       |         |             |             |             |                     |
-|     NormalStreamTest | .NET Core 3.0 |     1000 |   10000 |  1,313.7 us |    146.403 us |     8.0249 us |  1.00 |    0.00 |   2619.1406 |      1.9531 |           - |         10704.13 KB |
-|    PooledStreamBench | .NET Core 3.0 |     1000 |   10000 |    695.2 us |    143.958 us |     7.8908 us |  0.53 |    0.01 |    152.3438 |      0.9766 |           - |              626 KB |
-| RecyclableStreamTest | .NET Core 3.0 |     1000 |   10000 | 17,292.9 us |  3,992.965 us |   218.8679 us | 13.16 |    0.24 |   1031.2500 |     93.7500 |     31.2500 |          4432.18 KB |
-|       ObjectPoolTest | .NET Core 3.0 |     1000 |   10000 |  1,339.0 us |     96.621 us |     5.2961 us |  1.02 |    0.00 |    152.3438 |      1.9531 |           - |              626 KB |
-|                      |               |          |         |             |               |               |       |         |             |             |             |                     |
-|     **NormalStreamTest** | **.NET Core 2.0** |    **50000** |   **10000** | **42,464.4 us** |  **5,354.767 us** |   **293.5129 us** |  **1.00** |    **0.00** | **119000.0000** |   **5583.3333** |           **-** |         **489267.6 KB** |
-|    PooledStreamBench | .NET Core 2.0 |    50000 |   10000 | 18,481.9 us |    549.875 us |    30.1405 us |  0.44 |    0.00 |    156.2500 |           - |           - |           673.85 KB |
-| RecyclableStreamTest | .NET Core 2.0 |    50000 |   10000 | 38,660.2 us |  5,480.035 us |   300.3792 us |  0.91 |    0.01 |   1071.4286 |           - |           - |          4559.16 KB |
-|       ObjectPoolTest | .NET Core 2.0 |    50000 |   10000 | 19,214.0 us |  1,304.480 us |    71.5029 us |  0.45 |    0.00 |    156.2500 |           - |           - |           673.85 KB |
-|                      |               |          |         |             |               |               |       |         |             |             |             |                     |
-|     NormalStreamTest | .NET Core 3.0 |    50000 |   10000 | 55,819.0 us | 18,768.893 us | 1,028.7863 us |  1.00 |    0.00 | 119000.0000 |    100.0000 |           - |         489267.6 KB |
-|    PooledStreamBench | .NET Core 3.0 |    50000 |   10000 | 19,005.9 us |  2,020.870 us |   110.7707 us |  0.34 |    0.01 |    156.2500 |     31.2500 |           - |           673.85 KB |
-| RecyclableStreamTest | .NET Core 3.0 |    50000 |   10000 | 35,596.9 us | 23,828.634 us | 1,306.1278 us |  0.64 |    0.04 |   1000.0000 |     66.6667 |           - |          4480.03 KB |
-|       ObjectPoolTest | .NET Core 3.0 |    50000 |   10000 | 19,276.8 us |  2,661.927 us |   145.9092 us |  0.35 |    0.01 |    156.2500 |     31.2500 |           - |           673.85 KB |
+|               Method |     Toolchain | DataSize | MaxLoop |        Mean |       Error |      StdDev | Ratio | RatioSD |       Gen 0 |     Gen 1 |   Gen 2 |    Allocated |
+|--------------------- |-------------- |--------- |-------- |------------:|------------:|------------:|------:|--------:|------------:|----------:|--------:|-------------:|
+|     **NormalStreamTest** | **.NET Core 2.1** |      **100** |   **10000** |    **594.9 us** |    **566.6 us** |    **31.05 us** |  **1.00** |    **0.00** |    **838.8672** |         **-** |       **-** |   **3437.63 KB** |
+|    PooledStreamBench | .NET Core 2.1 |      100 |   10000 |    624.5 us |    374.8 us |    20.54 us |  1.05 |    0.03 |    152.3438 |         - |       - |    625.13 KB |
+| RecyclableStreamTest | .NET Core 2.1 |      100 |   10000 | 22,279.9 us |  7,740.3 us |   424.27 us | 37.51 |    1.86 |   1062.5000 |   31.2500 | 31.2500 |   4509.43 KB |
+|       ObjectPoolTest | .NET Core 2.1 |      100 |   10000 |  1,213.3 us |  1,083.3 us |    59.38 us |  2.04 |    0.16 |    152.3438 |         - |       - |    625.13 KB |
+|                      |               |          |         |             |             |             |       |         |             |           |         |              |
+|     NormalStreamTest | .NET Core 3.0 |      100 |   10000 |    534.3 us |    251.6 us |    13.79 us |  1.00 |    0.00 |    840.8203 |         - |       - |   3437.63 KB |
+|    PooledStreamBench | .NET Core 3.0 |      100 |   10000 |    569.7 us |    276.6 us |    15.16 us |  1.07 |    0.02 |    152.3438 |         - |       - |    625.13 KB |
+| RecyclableStreamTest | .NET Core 3.0 |      100 |   10000 | 16,857.0 us | 17,255.1 us |   945.81 us | 31.59 |    2.58 |   1031.2500 |   31.2500 | 31.2500 |    4431.3 KB |
+|       ObjectPoolTest | .NET Core 3.0 |      100 |   10000 |  1,070.7 us |  1,282.0 us |    70.27 us |  2.00 |    0.09 |    152.3438 |         - |       - |    625.13 KB |
+|                      |               |          |         |             |             |             |       |         |             |           |         |              |
+|     **NormalStreamTest** | **.NET Core 2.1** |     **1000** |   **10000** |  **1,227.5 us** |  **2,856.2 us** |   **156.56 us** |  **1.00** |    **0.00** |   **2611.3281** |         **-** |       **-** |  **10704.13 KB** |
+|    PooledStreamBench | .NET Core 2.1 |     1000 |   10000 |    890.6 us |    810.8 us |    44.45 us |  0.73 |    0.10 |    152.3438 |         - |       - |       626 KB |
+| RecyclableStreamTest | .NET Core 2.1 |     1000 |   10000 | 23,016.1 us | 13,867.5 us |   760.13 us | 18.99 |    2.83 |   1062.5000 |   31.2500 | 31.2500 |    4510.3 KB |
+|       ObjectPoolTest | .NET Core 2.1 |     1000 |   10000 |  1,435.7 us |    295.8 us |    16.21 us |  1.18 |    0.13 |    152.3438 |         - |       - |       626 KB |
+|                      |               |          |         |             |             |             |       |         |             |           |         |              |
+|     NormalStreamTest | .NET Core 3.0 |     1000 |   10000 |  1,073.5 us |    868.1 us |    47.58 us |  1.00 |    0.00 |   2619.1406 |         - |       - |  10704.13 KB |
+|    PooledStreamBench | .NET Core 3.0 |     1000 |   10000 |    833.5 us |    472.9 us |    25.92 us |  0.78 |    0.06 |    152.3438 |         - |       - |       626 KB |
+| RecyclableStreamTest | .NET Core 3.0 |     1000 |   10000 | 16,644.2 us |  2,705.4 us |   148.29 us | 15.52 |    0.54 |   1031.2500 |   31.2500 | 31.2500 |   4432.18 KB |
+|       ObjectPoolTest | .NET Core 3.0 |     1000 |   10000 |  1,235.9 us |    448.9 us |    24.61 us |  1.15 |    0.06 |    152.3438 |         - |       - |    626.01 KB |
+|                      |               |          |         |             |             |             |       |         |             |           |         |              |
+|     **NormalStreamTest** | **.NET Core 2.1** |    **50000** |   **10000** | **44,963.8 us** | **48,970.5 us** | **2,684.24 us** |  **1.00** |    **0.00** | **119000.0000** | **6090.9091** |       **-** |  **489267.6 KB** |
+|    PooledStreamBench | .NET Core 2.1 |    50000 |   10000 | 18,804.6 us |    865.1 us |    47.42 us |  0.42 |    0.02 |    156.2500 |         - |       - |    673.85 KB |
+| RecyclableStreamTest | .NET Core 2.1 |    50000 |   10000 | 39,927.1 us |  5,089.0 us |   278.95 us |  0.89 |    0.06 |   1076.9231 |         - |       - |   4558.16 KB |
+|       ObjectPoolTest | .NET Core 2.1 |    50000 |   10000 | 19,251.4 us |    358.7 us |    19.66 us |  0.43 |    0.03 |    156.2500 |         - |       - |    673.85 KB |
+|                      |               |          |         |             |             |             |       |         |             |           |         |              |
+|     NormalStreamTest | .NET Core 3.0 |    50000 |   10000 | 45,709.8 us | 57,887.2 us | 3,172.99 us |  1.00 |    0.00 | 119000.0000 | 4166.6667 |       - | 489268.05 KB |
+|    PooledStreamBench | .NET Core 3.0 |    50000 |   10000 | 18,791.7 us |  2,900.4 us |   158.98 us |  0.41 |    0.03 |    156.2500 |         - |       - |    673.86 KB |
+| RecyclableStreamTest | .NET Core 3.0 |    50000 |   10000 | 35,318.4 us |  8,499.6 us |   465.89 us |  0.77 |    0.05 |   1000.0000 |   66.6667 |       - |   4480.03 KB |
+|       ObjectPoolTest | .NET Core 3.0 |    50000 |   10000 | 18,578.5 us |    642.9 us |    35.24 us |  0.41 |    0.03 |    156.2500 |         - |       - |    673.85 KB |
 
 ## Comparison of multithreaded performance
 

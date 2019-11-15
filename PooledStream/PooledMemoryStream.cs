@@ -3,7 +3,8 @@ namespace PooledStream
     using System;
     using System.IO;
     using System.Buffers;
-    public partial class PooledMemoryStream : Stream
+    using System.Runtime.CompilerServices;
+    public sealed partial class PooledMemoryStream : Stream
     {
         /// <summary>create writable memory stream with default parameters</summary>
         /// <remarks>buffer is allocated from ArrayPool.Shared</remarks>
@@ -63,17 +64,25 @@ namespace PooledStream
         {
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void ReallocateBuffer(int minimumRequired)
         {
             var tmp = m_Pool.Rent(minimumRequired);
-            #if NETSTANDARD2_1
-            _currentbuffer.AsSpan().CopyTo(tmp);
-            #else
-            Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length);
-            #endif
-            m_Pool.Return(_currentbuffer);
+            if (_currentbuffer != null)
+            {
+                // #if NETSTANDARD2_1
+                //                 _currentbuffer.AsSpan().CopyTo(tmp);
+                // #else
+                //                 Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length);
+                // #endif
+                Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length < tmp.Length ? _currentbuffer.Length : tmp.Length);
+                m_Pool.Return(_currentbuffer);
+            }
             _currentbuffer = tmp;
         }
+        /// <summary>set stream length</summary>
+        /// <remarks>if length is larger than current buffer length, re-allocating buffer</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
         public override void SetLength(long value)
         {
             if (!_CanWrite)
@@ -89,9 +98,20 @@ namespace PooledStream
                 throw new IndexOutOfRangeException("underflow");
             }
             _Length = (int)value;
-            if (_currentbuffer.Length < _Length)
+            if (_currentbuffer == null || _currentbuffer.Length < _Length)
             {
                 ReallocateBuffer((int)_Length);
+            }
+            if (_Position >= _Length)
+            {
+                if (_Length == 0)
+                {
+                    _Position = 0;
+                }
+                else
+                {
+                    _Position = _Length - 1;
+                }
             }
         }
         protected override void Dispose(bool disposing)
@@ -102,11 +122,18 @@ namespace PooledStream
                 m_Pool.Return(_currentbuffer);
                 _currentbuffer = null;
             }
+            _Length = 0;
+            _Position = 0;
         }
         /// <summary>ensure the buffer size</summary>
         /// <remarks>capacity != stream buffer length</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
         public void Reserve(int capacity)
         {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
             if (capacity > _currentbuffer.Length)
             {
                 ReallocateBuffer(capacity);
@@ -155,5 +182,88 @@ namespace PooledStream
         bool _CanWrite;
         int _Length;
         int _Position;
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            int readlen = count > (int)(_Length - _Position) ? (int)(_Length - _Position) : count;
+            if (readlen > 0)
+            {
+                Buffer.BlockCopy(_currentbuffer
+                    , (int)_Position
+                    , buffer, offset
+                    , readlen)
+                    ;
+                _Position += readlen;
+                return readlen;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>write data to stream</summary>
+        /// <remarks>if stream data length is over int.MaxValue, this method throws IndexOutOfRangeException</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
+            int endOffset = _Position + count;
+            if (_currentbuffer == null || endOffset > _currentbuffer.Length)
+            {
+                ReallocateBuffer((int)(endOffset) * 2);
+            }
+            Buffer.BlockCopy(buffer, offset,
+                _currentbuffer, (int)_Position, count);
+            if (endOffset > _Length)
+            {
+                _Length = endOffset;
+            }
+            _Position = endOffset;
+        }
+        /// <summary>shrink internal buffer by re-allocating memory</summary>
+        /// <remarks>if internal buffer is shorter than minimumRequired, nothing to do</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
+        public void Shrink(int minimumRequired)
+        {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
+            if (_currentbuffer == null)
+            {
+                return;
+            }
+            if(_currentbuffer.Length > minimumRequired)
+            {
+                ReallocateBuffer(minimumRequired);
+            }
+            if (minimumRequired <= _Length)
+            {
+                _Length = minimumRequired;
+            }
+        }
+        /// <summary>get internal data as Span</summary>
+        /// <remarks>you must not use returned value outside of stream's lifetime</remarks>
+        public ReadOnlySpan<byte> ToSpanUnsafe()
+        {
+            if (_currentbuffer == null || _Length <= 0)
+            {
+                return Span<byte>.Empty;
+            }
+            return _currentbuffer.AsSpan(0, _Length);
+        }
+        /// <summary>get internal data as Memory</summary>
+        /// <remarks>you must not use returned value outside of stream's lifetime</remarks>
+        public ReadOnlyMemory<byte> ToMemoryUnsafe()
+        {
+            if (_currentbuffer == null || _Length <= 0)
+            {
+                return Memory<byte>.Empty;
+            }
+            return _currentbuffer.AsMemory(0, _Length);
+        }
     }
 }
