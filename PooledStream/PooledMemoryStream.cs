@@ -3,7 +3,8 @@ namespace PooledStream
     using System;
     using System.IO;
     using System.Buffers;
-    public class PooledMemoryStream : Stream
+    using System.Runtime.CompilerServices;
+    public sealed partial class PooledMemoryStream : Stream
     {
         /// <summary>create writable memory stream with default parameters</summary>
         /// <remarks>buffer is allocated from ArrayPool.Shared</remarks>
@@ -55,7 +56,7 @@ namespace PooledStream
             get => _Position;
             set
             {
-                _Position = value;
+                _Position = (int)value;
             }
         }
 
@@ -63,56 +64,25 @@ namespace PooledStream
         {
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            int readlen = count > (int)(_Length - _Position) ? (int)(_Length - _Position) : count;
-            if (readlen > 0)
-            {
-                Buffer.BlockCopy(_currentbuffer
-                    , (int)_Position
-                    , buffer, offset
-                    , readlen)
-                    ;
-                _Position += readlen;
-                return readlen;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            long oldValue = _Position;
-            switch ((int)origin)
-            {
-                case (int)SeekOrigin.Begin:
-                    _Position = offset;
-                    break;
-                case (int)SeekOrigin.End:
-                    _Position = _Length - offset;
-                    break;
-                case (int)SeekOrigin.Current:
-                    _Position += offset;
-                    break;
-                default:
-                    throw new InvalidOperationException("unknown SeekOrigin");
-            }
-            if (_Position < 0 || _Position > _Length)
-            {
-                _Position = oldValue;
-                throw new IndexOutOfRangeException();
-            }
-            return _Position;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void ReallocateBuffer(int minimumRequired)
         {
             var tmp = m_Pool.Rent(minimumRequired);
-            Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length);
-            m_Pool.Return(_currentbuffer);
+            if (_currentbuffer != null)
+            {
+                // #if NETSTANDARD2_1
+                //                 _currentbuffer.AsSpan().CopyTo(tmp);
+                // #else
+                //                 Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length);
+                // #endif
+                Buffer.BlockCopy(_currentbuffer, 0, tmp, 0, _currentbuffer.Length < tmp.Length ? _currentbuffer.Length : tmp.Length);
+                m_Pool.Return(_currentbuffer);
+            }
             _currentbuffer = tmp;
         }
+        /// <summary>set stream length</summary>
+        /// <remarks>if length is larger than current buffer length, re-allocating buffer</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
         public override void SetLength(long value)
         {
             if (!_CanWrite)
@@ -127,34 +97,23 @@ namespace PooledStream
             {
                 throw new IndexOutOfRangeException("underflow");
             }
-            _Length = value;
-            if (_currentbuffer.Length < _Length)
+            _Length = (int)value;
+            if (_currentbuffer == null || _currentbuffer.Length < _Length)
             {
                 ReallocateBuffer((int)_Length);
             }
+            if (_Position >= _Length)
+            {
+                if (_Length == 0)
+                {
+                    _Position = 0;
+                }
+                else
+                {
+                    _Position = _Length - 1;
+                }
+            }
         }
-        /// <summary>write data to stream</summary>
-        /// <remarks>if stream data length is over int.MaxValue, this method throws IndexOutOfRangeException</remarks>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            if (!_CanWrite)
-            {
-                throw new InvalidOperationException("stream is readonly");
-            }
-            long endOffset = _Position + count;
-            if (endOffset > _currentbuffer.Length)
-            {
-                ReallocateBuffer((int)(endOffset) * 2);
-            }
-            Buffer.BlockCopy(buffer, offset,
-                _currentbuffer, (int)_Position, count);
-            if (endOffset > _Length)
-            {
-                _Length = endOffset;
-            }
-            _Position = endOffset;
-        }
-
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -163,11 +122,18 @@ namespace PooledStream
                 m_Pool.Return(_currentbuffer);
                 _currentbuffer = null;
             }
+            _Length = 0;
+            _Position = 0;
         }
         /// <summary>ensure the buffer size</summary>
         /// <remarks>capacity != stream buffer length</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
         public void Reserve(int capacity)
         {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
             if (capacity > _currentbuffer.Length)
             {
                 ReallocateBuffer(capacity);
@@ -187,10 +153,117 @@ namespace PooledStream
         {
             return new ArraySegment<byte>(_currentbuffer, 0, (int)_Length);
         }
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            int oldValue = _Position;
+            switch ((int)origin)
+            {
+                case (int)SeekOrigin.Begin:
+                    _Position = (int)offset;
+                    break;
+                case (int)SeekOrigin.End:
+                    _Position = _Length - (int)offset;
+                    break;
+                case (int)SeekOrigin.Current:
+                    _Position += (int)offset;
+                    break;
+                default:
+                    throw new InvalidOperationException("unknown SeekOrigin");
+            }
+            if (_Position < 0 || _Position > _Length)
+            {
+                _Position = oldValue;
+                throw new IndexOutOfRangeException();
+            }
+            return _Position;
+        }
         ArrayPool<byte> m_Pool;
         byte[] _currentbuffer;
         bool _CanWrite;
-        long _Length;
-        long _Position;
+        int _Length;
+        int _Position;
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            int readlen = count > (int)(_Length - _Position) ? (int)(_Length - _Position) : count;
+            if (readlen > 0)
+            {
+                Buffer.BlockCopy(_currentbuffer
+                    , (int)_Position
+                    , buffer, offset
+                    , readlen)
+                    ;
+                _Position += readlen;
+                return readlen;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>write data to stream</summary>
+        /// <remarks>if stream data length is over int.MaxValue, this method throws IndexOutOfRangeException</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
+            int endOffset = _Position + count;
+            if (_currentbuffer == null || endOffset > _currentbuffer.Length)
+            {
+                ReallocateBuffer((int)(endOffset) * 2);
+            }
+            Buffer.BlockCopy(buffer, offset,
+                _currentbuffer, (int)_Position, count);
+            if (endOffset > _Length)
+            {
+                _Length = endOffset;
+            }
+            _Position = endOffset;
+        }
+        /// <summary>shrink internal buffer by re-allocating memory</summary>
+        /// <remarks>if internal buffer is shorter than minimumRequired, nothing to do</remarks>
+        /// <exception cref="System.InvalidOperationException">if stream is readonly</exception>
+        public void Shrink(int minimumRequired)
+        {
+            if (!_CanWrite)
+            {
+                throw new InvalidOperationException("stream is readonly");
+            }
+            if (_currentbuffer == null)
+            {
+                return;
+            }
+            if(_currentbuffer.Length > minimumRequired)
+            {
+                ReallocateBuffer(minimumRequired);
+            }
+            if (minimumRequired <= _Length)
+            {
+                _Length = minimumRequired;
+            }
+        }
+        /// <summary>get internal data as Span</summary>
+        /// <remarks>you must not use returned value outside of stream's lifetime</remarks>
+        public ReadOnlySpan<byte> ToSpanUnsafe()
+        {
+            if (_currentbuffer == null || _Length <= 0)
+            {
+                return Span<byte>.Empty;
+            }
+            return _currentbuffer.AsSpan(0, _Length);
+        }
+        /// <summary>get internal data as Memory</summary>
+        /// <remarks>you must not use returned value outside of stream's lifetime</remarks>
+        public ReadOnlyMemory<byte> ToMemoryUnsafe()
+        {
+            if (_currentbuffer == null || _Length <= 0)
+            {
+                return Memory<byte>.Empty;
+            }
+            return _currentbuffer.AsMemory(0, _Length);
+        }
     }
 }

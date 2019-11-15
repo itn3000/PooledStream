@@ -1,0 +1,5 @@
+<Project Sdk="MSBuild.SolutionSdk/0.1.0">
+    <Target Name="Pack" DependsOnTargets="_PrepareProjectReferences">
+        <MSBuild Targets="Pack" Projects="@(_ProjectReference)" SkipNonexistentTargets="true"/>
+    </Target>
+</Project>

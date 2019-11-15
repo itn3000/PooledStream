@@ -1,14 +1,31 @@
 version: 1.0.{build}
-image: Visual Studio 2017 Preview
+image: Visual Studio 2019 Preview
 configuration: Release
 before_build:
-- cmd: dotnet restore
-build:
-  verbosity: minimal
-after_build:
-- cmd: dotnet pack PooledStream -c Release --include-symbols
-test_script:
-- cmd: dotnet test PooledStream.Test\PooledStream.Test.csproj -c Release
+- cmd: dotnet tool restore
+- cmd: dotnet restore PooledStream.slnproj
+build_script:
+  cmd: dotnet tool run dotnet-cake build.cake -Configuration=Release
+test: off
 artifacts:
 - path: PooledStream\bin\Release\*.nupkg
   name: NugetPackages
+nuget:
+  project_feed: true
+deploy:
+- provider: NuGet
+  api_key:
+    secure: qaUt8ba0PUgACIO+bnj5thkgustzf23DumldizjHM3rEVZX/6d82TrKkLhQ3wpbr
+  on:
+    APPVEYOR_REPO_TAG: true
+    branch: master
+  artifact: NuGetPackages
+- provider: GitHub
+  auth_token:
+    secure: MFZg3Ryx8cZ9XWIf8qvSE+48pmQc2LPAcPiRQ7bUtPRKj4mXvn+mtZVzPV7tQyX1
+  on:
+    APPVEYOR_REPO_TAG: true
+    branch: master
+  artifact: NuGetPackages
+  prerelease: false
+  draft: true

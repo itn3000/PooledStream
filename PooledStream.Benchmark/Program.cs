@@ -14,6 +14,7 @@ namespace PooledStream.Benchmark
     using ObjectMemoryStream = CodeProject.ObjectPool.Specialized.MemoryStreamPool;
     [MemoryDiagnoser]
     [Config(typeof(MultiPlatformConfig))]
+    // [DisassemblyDiagnoser(printIL: true, printSource: true, printAsm: true)]
     public class StreamBenchmark
     {
         [Params(100, 1_000, 50_000)]
@@ -40,9 +41,10 @@ namespace PooledStream.Benchmark
             {
                 using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared, DataSize))
                 {
-                    stm.Write(data, 0, data.Length);
+                    stm.Write(data, 0, DataSize);
                 }
             }
+            // ArrayPool<byte>.Shared.Return(data);
         }
         [Benchmark]
         public void RecyclableStreamTest()
@@ -75,22 +77,18 @@ namespace PooledStream.Benchmark
     {
         public MultiPlatformConfig()
         {
-            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
-                .With(CsProjCoreToolchain.NetCoreApp20));
-            Add(Job.Default.WithWarmupCount(3).WithTargetCount(3)
+            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
                 .With(CsProjCoreToolchain.NetCoreApp21));
+            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
+                .With(CsProjCoreToolchain.NetCoreApp30));
+            this.Options |= ConfigOptions.DisableOptimizationsValidator;
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
-            var switcher = new BenchmarkSwitcher(new Type[]
-            {
-                typeof(StreamBenchmark),
-                typeof(StreamPrallelBenchmark)
-            }
-            );
+            var switcher = new BenchmarkSwitcher(typeof(Program).Assembly);
             switcher.Run();
         }
     }
