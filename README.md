@@ -131,35 +131,35 @@ IterationCount=3  WarmupCount=3
 
 ``` ini
 
-BenchmarkDotNet=v0.11.4, OS=Windows 8.1 (6.3.9600.0)
+BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
 Intel Core i7-4770 CPU 3.40GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=3312639 Hz, Resolution=301.8741 ns, Timer=TSC
-.NET Core SDK=3.0.100-preview3-010431
-  [Host]     : .NET Core 3.0.0-preview3-27503-5 (CoreCLR 4.6.27422.72, CoreFX 4.7.19.12807), 64bit RyuJIT
-  Job-USTLPH : .NET Core 2.0.9 (CoreCLR 4.6.26614.01, CoreFX 4.6.26614.01), 64bit RyuJIT
-  Job-NVQLSR : .NET Core 3.0.0-preview3-27503-5 (CoreCLR 4.6.27422.72, CoreFX 4.7.19.12807), 64bit RyuJIT
+Frequency=3312643 Hz, Resolution=301.8738 ns, Timer=TSC
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  Job-HFLIQV : .NET Core 2.1.13 (CoreCLR 4.6.28008.01, CoreFX 4.6.28008.01), X64 RyuJIT
+  Job-JJMYBO : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 
 IterationCount=3  WarmupCount=3  
 
 ```
-|                   Method |     Toolchain | ParallelNum | DataSize | MaxLoop |       Mean |       Error |    StdDev |  Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-|------------------------- |-------------- |------------ |--------- |-------- |-----------:|------------:|----------:|-------:|--------:|------------:|------------:|------------:|--------------------:|
-|     **NormalStreamParallel** | **.NET Core 2.0** |           **5** |     **1000** |   **10000** |   **1.223 ms** |   **0.1911 ms** | **0.0105 ms** |   **1.00** |    **0.00** |   **2611.3281** |           **-** |           **-** |         **10704.69 KB** |
-|     PooledStreamParallel | .NET Core 2.0 |           5 |     1000 |   10000 |   3.738 ms |   0.5457 ms | 0.0299 ms |   3.06 |    0.05 |    636.7188 |           - |           - |             4.09 KB |
-|       ObjectPoolParallel | .NET Core 2.0 |           5 |     1000 |   10000 |   7.824 ms |   4.5276 ms | 0.2482 ms |   6.40 |    0.24 |    757.8125 |           - |           - |          3126.57 KB |
-| RecyclableStreamParallel | .NET Core 2.0 |           5 |     1000 |   10000 | 108.985 ms | 113.9751 ms | 6.2474 ms |  89.10 |    4.98 |   5200.0000 |           - |           - |         22011.83 KB |
-|                          |               |             |          |         |            |             |           |        |         |             |             |             |                     |
-|     NormalStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   1.519 ms |   0.5097 ms | 0.0279 ms |   1.00 |    0.00 |   2619.1406 |           - |           - |         10704.68 KB |
-|     PooledStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   3.213 ms |   2.1407 ms | 0.1173 ms |   2.12 |    0.10 |    636.7188 |      3.9063 |           - |             3.54 KB |
-|       ObjectPoolParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   8.005 ms |   2.4718 ms | 0.1355 ms |   5.27 |    0.05 |    757.8125 |      7.8125 |           - |          3126.56 KB |
-| RecyclableStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |  93.885 ms |  90.2172 ms | 4.9451 ms |  61.87 |    4.31 |   5166.6667 |           - |           - |         21620.19 KB |
-|                          |               |             |          |         |            |             |           |        |         |             |             |             |                     |
-|     **NormalStreamParallel** | **.NET Core 2.0** |          **10** |     **1000** |   **10000** |   **1.222 ms** |   **0.5980 ms** | **0.0328 ms** |   **1.00** |    **0.00** |   **2611.3281** |           **-** |           **-** |         **10704.96 KB** |
-|     PooledStreamParallel | .NET Core 2.0 |          10 |     1000 |   10000 |   3.203 ms |   0.7506 ms | 0.0411 ms |   2.62 |    0.10 |    636.7188 |           - |           - |              6.8 KB |
-|       ObjectPoolParallel | .NET Core 2.0 |          10 |     1000 |   10000 |  15.600 ms |   0.0925 ms | 0.0051 ms |  12.77 |    0.34 |   1500.0000 |           - |           - |          6251.84 KB |
-| RecyclableStreamParallel | .NET Core 2.0 |          10 |     1000 |   10000 | 212.558 ms |  19.6829 ms | 1.0789 ms | 173.97 |    5.53 |  10666.6667 |           - |           - |         43887.02 KB |
-|                          |               |             |          |         |            |             |           |        |         |             |             |             |                     |
-|     NormalStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   1.466 ms |   0.9149 ms | 0.0501 ms |   1.00 |    0.00 |   2619.1406 |           - |           - |         10704.95 KB |
-|     PooledStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   2.884 ms |   0.7946 ms | 0.0436 ms |   1.97 |    0.04 |    636.7188 |      3.9063 |           - |             5.75 KB |
-|       ObjectPoolParallel | .NET Core 3.0 |          10 |     1000 |   10000 |  15.111 ms |   1.7868 ms | 0.0979 ms |  10.31 |    0.29 |   1515.6250 |     15.6250 |           - |          6251.84 KB |
-| RecyclableStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 | 175.536 ms |  53.7284 ms | 2.9450 ms | 119.80 |    4.79 |  10333.3333 |    333.3333 |           - |         43104.75 KB |
+|                   Method |     Toolchain | ParallelNum | DataSize | MaxLoop |       Mean |      Error |    StdDev |  Ratio | RatioSD |      Gen 0 | Gen 1 | Gen 2 |   Allocated |
+|------------------------- |-------------- |------------ |--------- |-------- |-----------:|-----------:|----------:|-------:|--------:|-----------:|------:|------:|------------:|
+|     **NormalStreamParallel** | **.NET Core 2.1** |           **5** |     **1000** |   **10000** |   **1.194 ms** |  **0.2631 ms** | **0.0144 ms** |   **1.00** |    **0.00** |  **2611.3281** |     **-** |     **-** | **10704.69 KB** |
+|     PooledStreamParallel | .NET Core 2.1 |           5 |     1000 |   10000 |   3.563 ms |  1.7474 ms | 0.0958 ms |   2.99 |    0.10 |   636.7188 |     - |     - |     3.55 KB |
+|       ObjectPoolParallel | .NET Core 2.1 |           5 |     1000 |   10000 |   8.777 ms |  5.3239 ms | 0.2918 ms |   7.36 |    0.34 |          - |     - |     - |  3126.57 KB |
+| RecyclableStreamParallel | .NET Core 2.1 |           5 |     1000 |   10000 | 112.561 ms | 61.1552 ms | 3.3521 ms |  94.30 |    2.62 |  5200.0000 |     - |     - | 22010.82 KB |
+|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
+|     NormalStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   1.171 ms |  0.2942 ms | 0.0161 ms |   1.00 |    0.00 |  2619.1406 |     - |     - | 10704.67 KB |
+|     PooledStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   3.101 ms |  1.9374 ms | 0.1062 ms |   2.65 |    0.09 |   636.7188 |     - |     - |  2580.41 KB |
+|       ObjectPoolParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   6.728 ms |  0.3479 ms | 0.0191 ms |   5.75 |    0.09 |   757.8125 |     - |     - |  3126.55 KB |
+| RecyclableStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |  85.958 ms |  2.1704 ms | 0.1190 ms |  73.44 |    1.09 |  5166.6667 |     - |     - | 21620.26 KB |
+|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
+|     **NormalStreamParallel** | **.NET Core 2.1** |          **10** |     **1000** |   **10000** |   **1.270 ms** |  **0.3971 ms** | **0.0218 ms** |   **1.00** |    **0.00** |  **2611.3281** |     **-** |     **-** | **10704.96 KB** |
+|     PooledStreamParallel | .NET Core 2.1 |          10 |     1000 |   10000 |   3.150 ms |  0.2103 ms | 0.0115 ms |   2.48 |    0.03 |   636.7188 |     - |     - |     5.78 KB |
+|       ObjectPoolParallel | .NET Core 2.1 |          10 |     1000 |   10000 |  15.877 ms |  6.3941 ms | 0.3505 ms |  12.50 |    0.07 |  1500.0000 |     - |     - |  6251.84 KB |
+| RecyclableStreamParallel | .NET Core 2.1 |          10 |     1000 |   10000 | 220.645 ms | 72.7076 ms | 3.9853 ms | 173.73 |    5.86 | 10666.6667 |     - |     - | 43886.01 KB |
+|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
+|     NormalStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   1.221 ms |  1.2462 ms | 0.0683 ms |   1.00 |    0.00 |  2619.1406 |     - |     - | 10704.95 KB |
+|     PooledStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   2.739 ms |  0.4759 ms | 0.0261 ms |   2.25 |    0.13 |   636.7188 |     - |     - |  2581.34 KB |
+|       ObjectPoolParallel | .NET Core 3.0 |          10 |     1000 |   10000 |  13.437 ms |  0.6758 ms | 0.0370 ms |  11.03 |    0.59 |  1515.6250 |     - |     - |  6251.83 KB |
+| RecyclableStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 | 160.428 ms | 10.2610 ms | 0.5624 ms | 131.64 |    7.13 | 10500.0000 |     - |     - |  43105.3 KB |
