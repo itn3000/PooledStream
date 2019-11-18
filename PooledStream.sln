@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PooledStream.Benchmark", "PooledStream.Benchmark\PooledStream.Benchmark.csproj", "{41130469-5601-4C78-87DC-14574AD1EB0F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PooledStream.Test", "PooledStream.Test\PooledStream.Test.csproj", "{DA3F4EB2-D0F8-49C3-8A34-C86412EFC151}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PooledStream", "PooledStream\PooledStream.csproj", "{3C446344-2FF5-45F9-9010-3227F715B8A9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AnyCPU = Debug|AnyCPU
+		Release|AnyCPU = Release|AnyCPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41130469-5601-4C78-87DC-14574AD1EB0F}.Debug|AnyCPU.ActiveCfg = Debug|Any CPU
+		{41130469-5601-4C78-87DC-14574AD1EB0F}.Debug|AnyCPU.Build.0 = Debug|Any CPU
+		{41130469-5601-4C78-87DC-14574AD1EB0F}.Release|AnyCPU.ActiveCfg = Debug|Any CPU
+		{41130469-5601-4C78-87DC-14574AD1EB0F}.Release|AnyCPU.Build.0 = Debug|Any CPU
+		{DA3F4EB2-D0F8-49C3-8A34-C86412EFC151}.Debug|AnyCPU.ActiveCfg = Debug|Any CPU
+		{DA3F4EB2-D0F8-49C3-8A34-C86412EFC151}.Debug|AnyCPU.Build.0 = Debug|Any CPU
+		{DA3F4EB2-D0F8-49C3-8A34-C86412EFC151}.Release|AnyCPU.ActiveCfg = Debug|Any CPU
+		{DA3F4EB2-D0F8-49C3-8A34-C86412EFC151}.Release|AnyCPU.Build.0 = Debug|Any CPU
+		{3C446344-2FF5-45F9-9010-3227F715B8A9}.Debug|AnyCPU.ActiveCfg = Debug|Any CPU
+		{3C446344-2FF5-45F9-9010-3227F715B8A9}.Debug|AnyCPU.Build.0 = Debug|Any CPU
+		{3C446344-2FF5-45F9-9010-3227F715B8A9}.Release|AnyCPU.ActiveCfg = Debug|Any CPU
+		{3C446344-2FF5-45F9-9010-3227F715B8A9}.Release|AnyCPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal

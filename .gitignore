@@ -280,4 +280,3 @@ __pycache__/
 .vscode/
 BenchmarkDotNet.Artifacts/
 tools/
-*.sln
