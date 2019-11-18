@@ -31,6 +31,28 @@ namespace PooledStream.Test
             }
         }
         [Fact]
+        public void TestWriteSpanTwice()
+        {
+            var data = (new byte[] { 1, 2, 3, 4 }).AsSpan();
+            using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared))
+            {
+                Assert.True(stm.CanWrite);
+                Assert.True(stm.CanRead);
+                Assert.Equal(0, stm.Length);
+                Assert.Equal(0, stm.Position);
+                stm.Write(data);
+                Assert.Equal(4, stm.Length);
+                Assert.Equal(4, stm.Position);
+                var ar = stm.ToArray();
+                Assert.Equal(data.ToArray(), ar);
+                stm.Write(data);
+                Assert.Equal(8, stm.Length);
+                Assert.Equal(8, stm.Position);
+                ar = stm.ToArray();
+                Assert.Equal(data.ToArray().Concat(data.ToArray()), ar);
+            }
+        }
+        [Fact]
         public void TestWriteMiddle()
         {
             var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8};
@@ -39,6 +61,19 @@ namespace PooledStream.Test
                 stm.Write(data, 0, data.Length);
                 stm.Seek(4, SeekOrigin.Begin);
                 stm.Write(data, 0, data.Length);
+                var ar = stm.ToArray();
+                Assert.Equal(data.Take(4).Concat(data), ar);
+            }
+        }
+        [Fact]
+        public void TestWriteSpanMiddle()
+        {
+            var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8};
+            using (var stm = new PooledMemoryStream(ArrayPool<byte>.Shared))
+            {
+                stm.Write(data.AsSpan());
+                stm.Seek(4, SeekOrigin.Begin);
+                stm.Write(data.AsSpan());
                 var ar = stm.ToArray();
                 Assert.Equal(data.Take(4).Concat(data), ar);
             }
