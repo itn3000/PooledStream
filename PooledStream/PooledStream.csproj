@@ -17,6 +17,8 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="**/*.cs" Exclude="obj/**/*.cs"/>
