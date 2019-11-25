@@ -76,7 +76,10 @@ finally
 }
 ```
 
-**WARNING: You must call `SetLength(0)` at first, and call `Return(stm)` in the end for preventing memory leak.**
+#### WARNING
+
+* **You must call `SetLength(0)` at first, and call `Return(stm)` in the end for preventing memory leak.**
+* **`PooledMemoryStream` is not threadsafe, so you must not share instance across threads**
 
 # Micro benchmark result(powered by [BenchmarkDotNet](http://benchmarkdotnet.org/))
 
