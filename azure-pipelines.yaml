@@ -73,7 +73,7 @@ stages:
               nuGetFeedType: external
               publishFeedCredentials: 'pooledstream-nuget'
           - task: NuGetCommand@2
-            displayName: "publishing nuget package"
+            displayName: "publishing nuget symbol package"
             inputs:
               command: push
               packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.snupkg'
