@@ -69,20 +69,6 @@ stages:
             inputs:
               artifact: release_snupkg
               path: "$(Build.ArtifactStagingDirectory)"
-          - task: NuGetCommand@2
-            displayName: "publishing nuget package"
-            inputs:
-              command: push
-              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
-              nuGetFeedType: external
-              publishFeedCredentials: 'pooledstream-nuget'
-          - task: NuGetCommand@2
-            displayName: "publishing nuget symbol package"
-            inputs:
-              command: push
-              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.snupkg'
-              nuGetFeedType: external
-              publishFeedCredentials: 'pooledstream-nuget'
           - task: GitHubRelease@0
             displayName: "releasing github"
             inputs:
@@ -91,6 +77,13 @@ stages:
               target: "$(Build.SourceVersion)"
               assets: "$(Build.ArtifactStagingDirectory)/**/*"
               isDraft: true
+          - task: NuGetCommand@2
+            displayName: "publishing nuget package"
+            inputs:
+              command: push
+              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+              nuGetFeedType: external
+              publishFeedCredentials: 'pooledstream-nuget'
 
 
 
