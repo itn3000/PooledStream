@@ -28,14 +28,24 @@ stages:
             inputs:
               sourceFolder: PooledStream/bin/Release
               contents: "**/*.nupkg"
-              targetFolder: "$(Build.ArtifactStagingDirectory)"
+              targetFolder: "$(Build.ArtifactStagingDirectory)/nupkg"
             displayName: "copying build nupkg to staging directory"
           - task: PublishBuildArtifacts@1
             inputs:
               artifactName: "release_nupkg"
-              pathToPublish: "$(Build.ArtifactStagingDirectory)"
+              pathToPublish: "$(Build.ArtifactStagingDirectory)/nupkg"
             displayName: publishing artifacts
-
+          - task: CopyFiles@2
+            inputs:
+              sourceFolder: PooledStream/bin/Release
+              contents: "**/*.snupkg"
+              targetFolder: "$(Build.ArtifactStagingDirectory)/snupkg"
+            displayName: "copying snupkg to staging directory"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              artifactName: "release_snupkg"
+              pathToPublish: "$(Build.ArtifactStagingDirectory)/snupkg"
+            displayName: publishing symbol package artifacts
   - stage: Publish
     displayName: "release artifacts"
     condition: "startsWith(variables['Build.SourceBranch'], 'refs/tags/')"
@@ -50,11 +60,23 @@ stages:
             inputs:
               artifact: release_nupkg
               path: "$(Build.ArtifactStagingDirectory)"
+          - task: DownloadPipelineArtifact@2
+            displayName: download snupkg artifacts
+            inputs:
+              artifact: release_snupkg
+              path: "$(Build.ArtifactStagingDirectory)"
           - task: NuGetCommand@2
             displayName: "publishing nuget package"
             inputs:
               command: push
               packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+              nuGetFeedType: external
+              publishFeedCredentials: 'pooledstream-nuget'
+          - task: NuGetCommand@2
+            displayName: "publishing nuget package"
+            inputs:
+              command: push
+              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.snupkg'
               nuGetFeedType: external
               publishFeedCredentials: 'pooledstream-nuget'
           - task: GitHubRelease@0
