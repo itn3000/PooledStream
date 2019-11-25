@@ -1,3 +1,6 @@
+trigger:
+  - master
+  - refs/tags/*
 stages:
   - stage: Build
     displayName: "build artifacts"
