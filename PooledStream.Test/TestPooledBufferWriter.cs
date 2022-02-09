@@ -9,7 +9,7 @@ namespace PooledStream.Test
         [Fact]
         public void Write()
         {
-            using var bw = new PooledBufferWriter<byte>(ArrayPool<byte>.Shared, 1024);
+            using var bw = new PooledMemoryBufferWriter<byte>(ArrayPool<byte>.Shared, 1024);
             var data = new byte[128];
             for (int i = 0; i < 16; i++)
             {
@@ -28,7 +28,7 @@ namespace PooledStream.Test
         [Fact]
         public void Reset()
         {
-            using var bw = new PooledBufferWriter<byte>();
+            using var bw = new PooledMemoryBufferWriter<byte>();
             var sp = bw.GetSpan(128);
             sp.Fill(1);
             bw.Advance(128);
