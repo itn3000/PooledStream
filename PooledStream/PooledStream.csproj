@@ -22,15 +22,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="**/*.cs" Exclude="obj/**/*.cs"/>
-    <Compile Include="obj/$(Configuration)/$(TargetFramework)/*.cs"/>
+    <!-- <Compile Include="obj/$(Configuration)/$(TargetFramework)/*.cs"/> -->
     <Content Include="$(ProjectDir)../LICENSE.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <Compile Remove="PooledMemoryStream.netstd11.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.1'">
-    <PackageReference Include="System.Buffers" Version="4.5.0" />
-    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
     <Compile Remove="PooledMemoryStream.netstd21.cs" />
   </ItemGroup>
 </Project>

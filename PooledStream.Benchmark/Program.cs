@@ -77,10 +77,10 @@ namespace PooledStream.Benchmark
     {
         public MultiPlatformConfig()
         {
-            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
-                .With(CsProjCoreToolchain.NetCoreApp21));
-            Add(Job.Default.WithWarmupCount(3).WithIterationCount(3)
-                .With(CsProjCoreToolchain.NetCoreApp30));
+            AddJob(Job.Default.WithWarmupCount(3).WithIterationCount(3)
+                .WithToolchain(CsProjCoreToolchain.NetCoreApp60));
+            AddJob(Job.Default.WithWarmupCount(3).WithIterationCount(3)
+                .WithToolchain(CsProjCoreToolchain.NetCoreApp31));
             this.Options |= ConfigOptions.DisableOptimizationsValidator;
         }
     }

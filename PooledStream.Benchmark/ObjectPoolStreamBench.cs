@@ -9,7 +9,6 @@ namespace PooledStream.Benchmark
 {
     [Config(typeof(MultiPlatformConfig))]
     [MemoryDiagnoser]
-    [DisassemblyDiagnoser(printAsm: true, printIL: true, printSource: true)]
     public class ObjectPoolStreamBench
     {
         [Params(10000)]
