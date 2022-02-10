@@ -23,10 +23,8 @@ Task("Test")
         var setting = new DotNetCoreTestSettings()
         {
             Configuration = configuration,
-            Framework = "netcoreapp2.0"
+            Framework = "net6.0"
         };
-        DotNetCoreTest(IO.Path.Combine("PooledStream.Test", "PooledStream.Test.csproj"), setting);
-        setting.Framework = "netcoreapp3.0";
         DotNetCoreTest(IO.Path.Combine("PooledStream.Test", "PooledStream.Test.csproj"), setting);
     })
     ;
