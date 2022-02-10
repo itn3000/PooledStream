@@ -13,7 +13,7 @@ this library aims to efficient MemoryStream for large data.
 You can add reference as [NuGet package](https://www.nuget.org/packages/PooledStream/).
 Once you add the reference, you can use PooledStream.PooledMemoryStream.
 
-## Code Examples
+## Code Examples of PooledMemoryStream
 
 ### Basic usage
 
@@ -81,88 +81,136 @@ finally
 * **You must call `SetLength(0)` at first, and call `Return(stm)` in the end for preventing memory leak.**
 * **`PooledMemoryStream` is not threadsafe, so you must not share instance across threads**
 
+## Code examples of PooledMemoryBufferWriter
+
+### Basic
+
+```csharp
+// using PooledStream;
+
+// create instance
+using var bw = new PooledMemoryBufferWriter<byte>();
+var sp = bw.GetSpan(8);
+sp.Fill(1);
+bw.Advance(8);
+// get buffer as Span<byte>, you MUST NOT use it outside of bufferwriter lifetime.
+var rsp = bw.ToSpanUnsafe();
+/// output "1,1,1,1,1,1,1,1"
+Console.WriteLine("{0}", string.Join(',', rsp.ToArray()));
+// reset buffer status
+bw.Reset();
+rsp = bw.ToSpanUnsafe();
+// output empty line
+Console.WriteLine("{0}", string.Join(',', rsp.ToArray()));
+```
+
+### Reusing(Advanced usage)
+
+```csharp
+// using Microsoft.Extensions.ObjectPool;
+// using PooledStream;
+
+// initializing object pool instance.This should be singleton.
+// PooledMemoryBufferWriter is not threadsafe.
+ObjectPool<PooledMemoryBufferWriter> pool = ObjectPool.Create<PooledMemoryBufferWriter>();
+var bw = pool.Get();
+try
+{
+  // initializing buffer
+  bw.Reset();
+  // using buffer writer...
+  ...
+}
+finally
+{
+  // returning instance
+  pool.Return(bw);
+}
+```
+
+* you MUST initialize buffer by `Reset()` at first
+* you MUST return instance to ObjectPool after using it
+
 # Micro benchmark result(powered by [BenchmarkDotNet](http://benchmarkdotnet.org/))
 
 ## Comparison of single thread performance
 
 ``` ini
 
-BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
-Intel Core i7-4770 CPU 3.40GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=3312643 Hz, Resolution=301.8738 ns, Timer=TSC
-.NET Core SDK=3.0.100
-  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
-  Job-XHTYBG : .NET Core 2.1.13 (CoreCLR 4.6.28008.01, CoreFX 4.6.28008.01), X64 RyuJIT
-  Job-GARYQQ : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19044.1466 (21H2)
+Intel Core i7-9700 CPU 3.00GHz, 1 CPU, 8 logical and 8 physical cores
+.NET SDK=6.0.101
+  [Host]     : .NET 6.0.1 (6.0.121.56705), X64 RyuJIT
+  Job-CJIONZ : .NET 6.0.1 (6.0.121.56705), X64 RyuJIT
+  Job-ERJOQR : .NET Core 3.1.22 (CoreCLR 4.700.21.56803, CoreFX 4.700.21.57101), X64 RyuJIT
 
 IterationCount=3  WarmupCount=3  
 
 ```
-|               Method |     Toolchain | DataSize | MaxLoop |        Mean |       Error |      StdDev | Ratio | RatioSD |       Gen 0 |     Gen 1 |   Gen 2 |    Allocated |
-|--------------------- |-------------- |--------- |-------- |------------:|------------:|------------:|------:|--------:|------------:|----------:|--------:|-------------:|
-|     **NormalStreamTest** | **.NET Core 2.1** |      **100** |   **10000** |    **594.9 us** |    **566.6 us** |    **31.05 us** |  **1.00** |    **0.00** |    **838.8672** |         **-** |       **-** |   **3437.63 KB** |
-|    PooledStreamBench | .NET Core 2.1 |      100 |   10000 |    624.5 us |    374.8 us |    20.54 us |  1.05 |    0.03 |    152.3438 |         - |       - |    625.13 KB |
-| RecyclableStreamTest | .NET Core 2.1 |      100 |   10000 | 22,279.9 us |  7,740.3 us |   424.27 us | 37.51 |    1.86 |   1062.5000 |   31.2500 | 31.2500 |   4509.43 KB |
-|       ObjectPoolTest | .NET Core 2.1 |      100 |   10000 |  1,213.3 us |  1,083.3 us |    59.38 us |  2.04 |    0.16 |    152.3438 |         - |       - |    625.13 KB |
-|                      |               |          |         |             |             |             |       |         |             |           |         |              |
-|     NormalStreamTest | .NET Core 3.0 |      100 |   10000 |    534.3 us |    251.6 us |    13.79 us |  1.00 |    0.00 |    840.8203 |         - |       - |   3437.63 KB |
-|    PooledStreamBench | .NET Core 3.0 |      100 |   10000 |    569.7 us |    276.6 us |    15.16 us |  1.07 |    0.02 |    152.3438 |         - |       - |    625.13 KB |
-| RecyclableStreamTest | .NET Core 3.0 |      100 |   10000 | 16,857.0 us | 17,255.1 us |   945.81 us | 31.59 |    2.58 |   1031.2500 |   31.2500 | 31.2500 |    4431.3 KB |
-|       ObjectPoolTest | .NET Core 3.0 |      100 |   10000 |  1,070.7 us |  1,282.0 us |    70.27 us |  2.00 |    0.09 |    152.3438 |         - |       - |    625.13 KB |
-|                      |               |          |         |             |             |             |       |         |             |           |         |              |
-|     **NormalStreamTest** | **.NET Core 2.1** |     **1000** |   **10000** |  **1,227.5 us** |  **2,856.2 us** |   **156.56 us** |  **1.00** |    **0.00** |   **2611.3281** |         **-** |       **-** |  **10704.13 KB** |
-|    PooledStreamBench | .NET Core 2.1 |     1000 |   10000 |    890.6 us |    810.8 us |    44.45 us |  0.73 |    0.10 |    152.3438 |         - |       - |       626 KB |
-| RecyclableStreamTest | .NET Core 2.1 |     1000 |   10000 | 23,016.1 us | 13,867.5 us |   760.13 us | 18.99 |    2.83 |   1062.5000 |   31.2500 | 31.2500 |    4510.3 KB |
-|       ObjectPoolTest | .NET Core 2.1 |     1000 |   10000 |  1,435.7 us |    295.8 us |    16.21 us |  1.18 |    0.13 |    152.3438 |         - |       - |       626 KB |
-|                      |               |          |         |             |             |             |       |         |             |           |         |              |
-|     NormalStreamTest | .NET Core 3.0 |     1000 |   10000 |  1,073.5 us |    868.1 us |    47.58 us |  1.00 |    0.00 |   2619.1406 |         - |       - |  10704.13 KB |
-|    PooledStreamBench | .NET Core 3.0 |     1000 |   10000 |    833.5 us |    472.9 us |    25.92 us |  0.78 |    0.06 |    152.3438 |         - |       - |       626 KB |
-| RecyclableStreamTest | .NET Core 3.0 |     1000 |   10000 | 16,644.2 us |  2,705.4 us |   148.29 us | 15.52 |    0.54 |   1031.2500 |   31.2500 | 31.2500 |   4432.18 KB |
-|       ObjectPoolTest | .NET Core 3.0 |     1000 |   10000 |  1,235.9 us |    448.9 us |    24.61 us |  1.15 |    0.06 |    152.3438 |         - |       - |    626.01 KB |
-|                      |               |          |         |             |             |             |       |         |             |           |         |              |
-|     **NormalStreamTest** | **.NET Core 2.1** |    **50000** |   **10000** | **44,963.8 us** | **48,970.5 us** | **2,684.24 us** |  **1.00** |    **0.00** | **119000.0000** | **6090.9091** |       **-** |  **489267.6 KB** |
-|    PooledStreamBench | .NET Core 2.1 |    50000 |   10000 | 18,804.6 us |    865.1 us |    47.42 us |  0.42 |    0.02 |    156.2500 |         - |       - |    673.85 KB |
-| RecyclableStreamTest | .NET Core 2.1 |    50000 |   10000 | 39,927.1 us |  5,089.0 us |   278.95 us |  0.89 |    0.06 |   1076.9231 |         - |       - |   4558.16 KB |
-|       ObjectPoolTest | .NET Core 2.1 |    50000 |   10000 | 19,251.4 us |    358.7 us |    19.66 us |  0.43 |    0.03 |    156.2500 |         - |       - |    673.85 KB |
-|                      |               |          |         |             |             |             |       |         |             |           |         |              |
-|     NormalStreamTest | .NET Core 3.0 |    50000 |   10000 | 45,709.8 us | 57,887.2 us | 3,172.99 us |  1.00 |    0.00 | 119000.0000 | 4166.6667 |       - | 489268.05 KB |
-|    PooledStreamBench | .NET Core 3.0 |    50000 |   10000 | 18,791.7 us |  2,900.4 us |   158.98 us |  0.41 |    0.03 |    156.2500 |         - |       - |    673.86 KB |
-| RecyclableStreamTest | .NET Core 3.0 |    50000 |   10000 | 35,318.4 us |  8,499.6 us |   465.89 us |  0.77 |    0.05 |   1000.0000 |   66.6667 |       - |   4480.03 KB |
-|       ObjectPoolTest | .NET Core 3.0 |    50000 |   10000 | 18,578.5 us |    642.9 us |    35.24 us |  0.41 |    0.03 |    156.2500 |         - |       - |    673.85 KB |
+|               Method |        Job |     Toolchain | DataSize | MaxLoop |        Mean |        Error |    StdDev | Ratio | RatioSD |      Gen 0 |      Gen 1 |   Gen 2 |  Allocated |
+|--------------------- |----------- |-------------- |--------- |-------- |------------:|-------------:|----------:|------:|--------:|-----------:|-----------:|--------:|-----------:|
+|     **NormalStreamTest** | **Job-CJIONZ** |      **.NET 6.0** |      **100** |   **10000** |    **352.1 μs** |    **260.08 μs** |  **14.26 μs** |  **1.00** |    **0.00** |   **548.3398** |     **0.4883** |       **-** |   **3,360 KB** |
+|    PooledStreamBench | Job-CJIONZ |      .NET 6.0 |      100 |   10000 |    362.2 μs |     61.72 μs |   3.38 μs |  1.03 |    0.03 |    88.8672 |          - |       - |     547 KB |
+| RecyclableStreamTest | Job-CJIONZ |      .NET 6.0 |      100 |   10000 | 12,224.8 μs |    283.90 μs |  15.56 μs | 34.76 |    1.36 |   687.5000 |    46.8750 | 31.2500 |   4,353 KB |
+|       ObjectPoolTest | Job-CJIONZ |      .NET 6.0 |      100 |   10000 |    754.0 μs |    562.71 μs |  30.84 μs |  2.15 |    0.17 |   101.5625 |          - |       - |     625 KB |
+|                      |            |               |          |         |             |              |           |       |         |            |            |         |            |
+|     NormalStreamTest | Job-ERJOQR | .NET Core 3.1 |      100 |   10000 |    388.8 μs |    198.45 μs |  10.88 μs |  1.00 |    0.00 |   561.0352 |     0.9766 |       - |   3,438 KB |
+|    PooledStreamBench | Job-ERJOQR | .NET Core 3.1 |      100 |   10000 |    403.8 μs |     76.37 μs |   4.19 μs |  1.04 |    0.04 |   101.5625 |          - |       - |     625 KB |
+| RecyclableStreamTest | Job-ERJOQR | .NET Core 3.1 |      100 |   10000 | 12,498.6 μs |  1,357.66 μs |  74.42 μs | 32.16 |    0.71 |   703.1250 |    46.8750 | 31.2500 |   4,431 KB |
+|       ObjectPoolTest | Job-ERJOQR | .NET Core 3.1 |      100 |   10000 |    785.7 μs |    179.92 μs |   9.86 μs |  2.02 |    0.08 |   101.5625 |          - |       - |     625 KB |
+|                      |            |               |          |         |             |              |           |       |         |            |            |         |            |
+|     **NormalStreamTest** | **Job-CJIONZ** |      **.NET 6.0** |     **1000** |   **10000** |    **732.8 μs** |    **264.67 μs** |  **14.51 μs** |  **1.00** |    **0.00** |  **1734.3750** |    **10.7422** |       **-** |  **10,626 KB** |
+|    PooledStreamBench | Job-CJIONZ |      .NET 6.0 |     1000 |   10000 |    513.3 μs |    465.38 μs |  25.51 μs |  0.70 |    0.05 |    88.8672 |          - |       - |     548 KB |
+| RecyclableStreamTest | Job-CJIONZ |      .NET 6.0 |     1000 |   10000 | 11,926.3 μs |    816.69 μs |  44.77 μs | 16.28 |    0.33 |   687.5000 |    46.8750 | 31.2500 |   4,354 KB |
+|       ObjectPoolTest | Job-CJIONZ |      .NET 6.0 |     1000 |   10000 |    839.0 μs |    191.49 μs |  10.50 μs |  1.15 |    0.03 |   101.5625 |          - |       - |     626 KB |
+|                      |            |               |          |         |             |              |           |       |         |            |            |         |            |
+|     NormalStreamTest | Job-ERJOQR | .NET Core 3.1 |     1000 |   10000 |    769.3 μs |     81.86 μs |   4.49 μs |  1.00 |    0.00 |  1747.0703 |    10.7422 |       - |  10,704 KB |
+|    PooledStreamBench | Job-ERJOQR | .NET Core 3.1 |     1000 |   10000 |    586.8 μs |    495.79 μs |  27.18 μs |  0.76 |    0.04 |   101.5625 |          - |       - |     626 KB |
+| RecyclableStreamTest | Job-ERJOQR | .NET Core 3.1 |     1000 |   10000 | 12,806.1 μs |  2,418.51 μs | 132.57 μs | 16.65 |    0.26 |   703.1250 |    46.8750 | 31.2500 |   4,432 KB |
+|       ObjectPoolTest | Job-ERJOQR | .NET Core 3.1 |     1000 |   10000 |    914.8 μs |     73.68 μs |   4.04 μs |  1.19 |    0.01 |   101.5625 |          - |       - |     626 KB |
+|                      |            |               |          |         |             |              |           |       |         |            |            |         |            |
+|     **NormalStreamTest** | **Job-CJIONZ** |      **.NET 6.0** |    **50000** |   **10000** | **27,280.8 μs** |  **2,486.59 μs** | **136.30 μs** |  **1.00** |    **0.00** | **79312.5000** | **10312.5000** |       **-** | **489,190 KB** |
+|    PooledStreamBench | Job-CJIONZ |      .NET 6.0 |    50000 |   10000 |  9,201.1 μs |  2,050.28 μs | 112.38 μs |  0.34 |    0.01 |    93.7500 |          - |       - |     596 KB |
+| RecyclableStreamTest | Job-CJIONZ |      .NET 6.0 |    50000 |   10000 | 22,549.4 μs |  7,507.94 μs | 411.54 μs |  0.83 |    0.01 |   687.5000 |   125.0000 | 31.2500 |   4,402 KB |
+|       ObjectPoolTest | Job-CJIONZ |      .NET 6.0 |    50000 |   10000 | 10,864.5 μs |  1,082.43 μs |  59.33 μs |  0.40 |    0.00 |   109.3750 |    15.6250 |       - |     674 KB |
+|                      |            |               |          |         |             |              |           |       |         |            |            |         |            |
+|     NormalStreamTest | Job-ERJOQR | .NET Core 3.1 |    50000 |   10000 | 27,684.2 μs |  2,307.66 μs | 126.49 μs |  1.00 |    0.00 | 79343.7500 | 10437.5000 | 31.2500 | 489,268 KB |
+|    PooledStreamBench | Job-ERJOQR | .NET Core 3.1 |    50000 |   10000 |  9,232.5 μs |  2,070.70 μs | 113.50 μs |  0.33 |    0.01 |   109.3750 |    15.6250 |       - |     674 KB |
+| RecyclableStreamTest | Job-ERJOQR | .NET Core 3.1 |    50000 |   10000 | 23,480.2 μs | 13,114.22 μs | 718.83 μs |  0.85 |    0.03 |   687.5000 |   125.0000 | 31.2500 |   4,480 KB |
+|       ObjectPoolTest | Job-ERJOQR | .NET Core 3.1 |    50000 |   10000 | 10,904.2 μs |  1,730.91 μs |  94.88 μs |  0.39 |    0.00 |   109.3750 |    15.6250 |       - |     674 KB |
 
 ## Comparison of multithreaded performance
 
 ``` ini
 
-BenchmarkDotNet=v0.12.0, OS=Windows 8.1 (6.3.9600.0)
-Intel Core i7-4770 CPU 3.40GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-Frequency=3312643 Hz, Resolution=301.8738 ns, Timer=TSC
-.NET Core SDK=3.0.100
-  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
-  Job-HFLIQV : .NET Core 2.1.13 (CoreCLR 4.6.28008.01, CoreFX 4.6.28008.01), X64 RyuJIT
-  Job-JJMYBO : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+BenchmarkDotNet=v0.13.1, OS=Windows 10.0.19044.1466 (21H2)
+Intel Core i7-9700 CPU 3.00GHz, 1 CPU, 8 logical and 8 physical cores
+.NET SDK=6.0.101
+  [Host]     : .NET 6.0.1 (6.0.121.56705), X64 RyuJIT
+  Job-DVURFQ : .NET 6.0.1 (6.0.121.56705), X64 RyuJIT
+  Job-ZKBPJE : .NET Core 3.1.22 (CoreCLR 4.700.21.56803, CoreFX 4.700.21.57101), X64 RyuJIT
 
 IterationCount=3  WarmupCount=3  
 
 ```
-|                   Method |     Toolchain | ParallelNum | DataSize | MaxLoop |       Mean |      Error |    StdDev |  Ratio | RatioSD |      Gen 0 | Gen 1 | Gen 2 |   Allocated |
-|------------------------- |-------------- |------------ |--------- |-------- |-----------:|-----------:|----------:|-------:|--------:|-----------:|------:|------:|------------:|
-|     **NormalStreamParallel** | **.NET Core 2.1** |           **5** |     **1000** |   **10000** |   **1.194 ms** |  **0.2631 ms** | **0.0144 ms** |   **1.00** |    **0.00** |  **2611.3281** |     **-** |     **-** | **10704.69 KB** |
-|     PooledStreamParallel | .NET Core 2.1 |           5 |     1000 |   10000 |   3.563 ms |  1.7474 ms | 0.0958 ms |   2.99 |    0.10 |   636.7188 |     - |     - |     3.55 KB |
-|       ObjectPoolParallel | .NET Core 2.1 |           5 |     1000 |   10000 |   8.777 ms |  5.3239 ms | 0.2918 ms |   7.36 |    0.34 |          - |     - |     - |  3126.57 KB |
-| RecyclableStreamParallel | .NET Core 2.1 |           5 |     1000 |   10000 | 112.561 ms | 61.1552 ms | 3.3521 ms |  94.30 |    2.62 |  5200.0000 |     - |     - | 22010.82 KB |
-|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
-|     NormalStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   1.171 ms |  0.2942 ms | 0.0161 ms |   1.00 |    0.00 |  2619.1406 |     - |     - | 10704.67 KB |
-|     PooledStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   3.101 ms |  1.9374 ms | 0.1062 ms |   2.65 |    0.09 |   636.7188 |     - |     - |  2580.41 KB |
-|       ObjectPoolParallel | .NET Core 3.0 |           5 |     1000 |   10000 |   6.728 ms |  0.3479 ms | 0.0191 ms |   5.75 |    0.09 |   757.8125 |     - |     - |  3126.55 KB |
-| RecyclableStreamParallel | .NET Core 3.0 |           5 |     1000 |   10000 |  85.958 ms |  2.1704 ms | 0.1190 ms |  73.44 |    1.09 |  5166.6667 |     - |     - | 21620.26 KB |
-|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
-|     **NormalStreamParallel** | **.NET Core 2.1** |          **10** |     **1000** |   **10000** |   **1.270 ms** |  **0.3971 ms** | **0.0218 ms** |   **1.00** |    **0.00** |  **2611.3281** |     **-** |     **-** | **10704.96 KB** |
-|     PooledStreamParallel | .NET Core 2.1 |          10 |     1000 |   10000 |   3.150 ms |  0.2103 ms | 0.0115 ms |   2.48 |    0.03 |   636.7188 |     - |     - |     5.78 KB |
-|       ObjectPoolParallel | .NET Core 2.1 |          10 |     1000 |   10000 |  15.877 ms |  6.3941 ms | 0.3505 ms |  12.50 |    0.07 |  1500.0000 |     - |     - |  6251.84 KB |
-| RecyclableStreamParallel | .NET Core 2.1 |          10 |     1000 |   10000 | 220.645 ms | 72.7076 ms | 3.9853 ms | 173.73 |    5.86 | 10666.6667 |     - |     - | 43886.01 KB |
-|                          |               |             |          |         |            |            |           |        |         |            |       |       |             |
-|     NormalStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   1.221 ms |  1.2462 ms | 0.0683 ms |   1.00 |    0.00 |  2619.1406 |     - |     - | 10704.95 KB |
-|     PooledStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 |   2.739 ms |  0.4759 ms | 0.0261 ms |   2.25 |    0.13 |   636.7188 |     - |     - |  2581.34 KB |
-|       ObjectPoolParallel | .NET Core 3.0 |          10 |     1000 |   10000 |  13.437 ms |  0.6758 ms | 0.0370 ms |  11.03 |    0.59 |  1515.6250 |     - |     - |  6251.83 KB |
-| RecyclableStreamParallel | .NET Core 3.0 |          10 |     1000 |   10000 | 160.428 ms | 10.2610 ms | 0.5624 ms | 131.64 |    7.13 | 10500.0000 |     - |     - |  43105.3 KB |
+|                   Method |        Job |     Toolchain | ParallelNum | DataSize | MaxLoop |         Mean |       Error |    StdDev |  Ratio | RatioSD |     Gen 0 |   Gen 1 | Allocated |
+|------------------------- |----------- |-------------- |------------ |--------- |-------- |-------------:|------------:|----------:|-------:|--------:|----------:|--------:|----------:|
+|     **NormalStreamParallel** | **Job-DVURFQ** |      **.NET 6.0** |           **5** |     **1000** |   **10000** |     **832.3 μs** |    **91.85 μs** |   **5.03 μs** |   **1.00** |    **0.00** | **1734.3750** | **11.7188** |     **10 MB** |
+|     PooledStreamParallel | Job-DVURFQ |      .NET 6.0 |           5 |     1000 |   10000 |   1,461.6 μs | 1,099.12 μs |  60.25 μs |   1.76 |    0.08 |  410.1563 |  3.9063 |      2 MB |
+|       ObjectPoolParallel | Job-DVURFQ |      .NET 6.0 |           5 |     1000 |   10000 |   4,915.4 μs | 1,044.02 μs |  57.23 μs |   5.91 |    0.10 |  507.8125 |       - |      3 MB |
+| RecyclableStreamParallel | Job-DVURFQ |      .NET 6.0 |           5 |     1000 |   10000 |  59,377.8 μs | 2,245.30 μs | 123.07 μs |  71.35 |    0.39 | 3444.4444 |       - |     21 MB |
+|                          |            |               |             |          |         |              |             |           |        |         |           |         |           |
+|     NormalStreamParallel | Job-ZKBPJE | .NET Core 3.1 |           5 |     1000 |   10000 |     883.1 μs |   308.71 μs |  16.92 μs |   1.00 |    0.00 | 1747.0703 | 11.7188 |     10 MB |
+|     PooledStreamParallel | Job-ZKBPJE | .NET Core 3.1 |           5 |     1000 |   10000 |   2,520.1 μs |   982.67 μs |  53.86 μs |   2.85 |    0.07 |  421.8750 |  3.9063 |      3 MB |
+|       ObjectPoolParallel | Job-ZKBPJE | .NET Core 3.1 |           5 |     1000 |   10000 |   5,142.7 μs |   271.51 μs |  14.88 μs |   5.82 |    0.10 |  507.8125 |       - |      3 MB |
+| RecyclableStreamParallel | Job-ZKBPJE | .NET Core 3.1 |           5 |     1000 |   10000 |  63,350.5 μs | 3,453.86 μs | 189.32 μs |  71.75 |    1.56 | 3500.0000 |       - |     21 MB |
+|                          |            |               |             |          |         |              |             |           |        |         |           |         |           |
+|     **NormalStreamParallel** | **Job-DVURFQ** |      **.NET 6.0** |          **10** |     **1000** |   **10000** |     **831.3 μs** |   **318.09 μs** |  **17.44 μs** |   **1.00** |    **0.00** | **1734.3750** |  **9.7656** |     **10 MB** |
+|     PooledStreamParallel | Job-DVURFQ |      .NET 6.0 |          10 |     1000 |   10000 |   1,528.2 μs | 2,194.38 μs | 120.28 μs |   1.84 |    0.11 |  410.1563 |  5.8594 |      2 MB |
+|       ObjectPoolParallel | Job-DVURFQ |      .NET 6.0 |          10 |     1000 |   10000 |   9,440.5 μs |   984.44 μs |  53.96 μs |  11.36 |    0.30 | 1015.6250 |       - |      6 MB |
+| RecyclableStreamParallel | Job-DVURFQ |      .NET 6.0 |          10 |     1000 |   10000 | 118,121.0 μs | 4,079.13 μs | 223.59 μs | 142.14 |    2.73 | 6800.0000 |       - |     41 MB |
+|                          |            |               |             |          |         |              |             |           |        |         |           |         |           |
+|     NormalStreamParallel | Job-ZKBPJE | .NET Core 3.1 |          10 |     1000 |   10000 |     839.9 μs |    91.10 μs |   4.99 μs |   1.00 |    0.00 | 1747.0703 | 11.7188 |     10 MB |
+|     PooledStreamParallel | Job-ZKBPJE | .NET Core 3.1 |          10 |     1000 |   10000 |   2,078.9 μs |    72.45 μs |   3.97 μs |   2.48 |    0.01 |  421.8750 |  3.9063 |      3 MB |
+|       ObjectPoolParallel | Job-ZKBPJE | .NET Core 3.1 |          10 |     1000 |   10000 |  11,123.8 μs | 5,348.25 μs | 293.16 μs |  13.24 |    0.32 | 1015.6250 |       - |      6 MB |
+| RecyclableStreamParallel | Job-ZKBPJE | .NET Core 3.1 |          10 |     1000 |   10000 | 126,562.0 μs | 6,505.48 μs | 356.59 μs | 150.68 |    0.85 | 7000.0000 |       - |     42 MB |

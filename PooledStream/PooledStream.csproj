@@ -4,13 +4,13 @@
     <TargetFrameworks>netstandard2.1;netstandard1.1</TargetFrameworks>
     <!-- <TargetFramework>netstandard2.1</TargetFramework> -->
     <PackageId>PooledStream</PackageId>
-    <PackageVersion>0.2.1.2</PackageVersion>
+    <PackageVersion>0.3.0</PackageVersion>
     <Authors>itn3000</Authors>
     <Description>Efficient MemoryStream powered by System.Buffers.ArrayPool</Description>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>add netstandard2.1 to TargetFramework</PackageReleaseNotes>
+    <PackageReleaseNotes>add PooledMemoryBufferWriter</PackageReleaseNotes>
     <Copyright>Copyright(c) 2017 itn3000. All rights reserved</Copyright>
-    <PackageTags>MemoryStream</PackageTags>
+    <PackageTags>MemoryStream;ArrayPool</PackageTags>
     <PackageProjectUrl>https://github.com/itn3000/PooledStream/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/itn3000/PooledStream/</RepositoryUrl>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
