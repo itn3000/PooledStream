@@ -2,11 +2,7 @@
 
 [![NuGet version](https://badge.fury.io/nu/PooledStream.svg)](https://badge.fury.io/nu/PooledStream)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/yhm2jto1ed0q0x0y/branch/master?svg=true)](https://ci.appveyor.com/project/itn3000/pooledstream-kviqp/branch/master)
-
 this library aims to efficient MemoryStream for large data.
-
-**STILL UNDER DEVELOPMENT**
 
 # Usage
 
